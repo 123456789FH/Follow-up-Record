@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f766e" />
-  <meta name="description" content="سجل إلكتروني تفاعلي لمتابعة طالبات الرياضيات يوميًا مع مراعاة الفروق الفردية وطرائق التعلم." />
+  <meta name="description" content="سجل إلكتروني تفاعلي لمتابعة الطلاب في مادة الرياضيات يوميًا مع مراعاة الفروق الفردية وطرائق التعلم." />
   <title>بوصلة الرياضيات | سجل المتابعة اليومية</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
@@ -15,9 +15,8 @@
   <div class="app-shell">
     <aside class="sidebar" id="sidebar" aria-label="القائمة الرئيسة">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">
-          <span>∑</span>
-          <span class="brand-compass">✦</span>
+        <div class="brand-mark brand-logo-wrap">
+          <img class="brand-logo" src="./assets/interactive-learning-forum-logo.png" alt="شعار ملتقى التعليم التفاعلي" />
         </div>
         <div>
           <h1>بوصلة الرياضيات</h1>
@@ -33,7 +32,7 @@
           <span class="nav-icon">✓</span><span>الرصد اليومي</span>
         </button>
         <button class="nav-item" data-view="students" type="button">
-          <span class="nav-icon">◉</span><span>بطاقات الطالبات</span>
+          <span class="nav-icon">◉</span><span>بطاقات الطلاب</span>
         </button>
         <button class="nav-item" data-view="skills" type="button">
           <span class="nav-icon">◇</span><span>المهارات</span>
@@ -50,7 +49,11 @@
         <strong>خصوصية كاملة</strong>
         <span>تُحفظ البيانات على جهازك فقط، ولا تُرسل إلى أي جهة.</span>
       </div>
-      <div class="sidebar-footer" id="sidebarFooter">بوصلة الرياضيات</div>
+      <div class="sidebar-footer" id="sidebarFooter">
+        <strong>أ/ فاطمة هزازي</strong>
+        <span>ملتقى التعليم التفاعلي</span>
+        <span>ملتقى معلمي ومعلمات الرياضيات</span>
+      </div>
     </aside>
 
     <div class="content-shell">
@@ -58,7 +61,7 @@
         <button class="icon-button mobile-menu" id="mobileMenuButton" type="button" aria-label="فتح القائمة">☰</button>
         <div class="topbar-context">
           <strong id="contextClassName">الفصل غير محدد</strong>
-          <span id="contextTeacherName">أضيفي بياناتك من الإعدادات</span>
+          <span id="contextTeacherName">أضف بياناتك من الإعدادات</span>
         </div>
         <div class="topbar-actions">
           <button class="button button-ghost" id="installAppButton" type="button" hidden>تثبيت التطبيق</button>
@@ -72,21 +75,21 @@
             <div>
               <span class="eyebrow">متابعة ذكية • قرارات تعليمية أوضح</span>
               <h2>لوحة ألوان الفصل</h2>
-              <p>شاهدي مستوى كل طالبة في كل مهارة، وحددي مجموعات الدعم والإثراء في ثوانٍ.</p>
+              <p>شاهد مستوى كل طالب في كل مهارة، وحدد مجموعات الدعم والإثراء في ثوانٍ.</p>
             </div>
             <div class="heading-actions">
               <button class="button button-secondary" data-action="print-dashboard" type="button">طباعة اللوحة</button>
-              <button class="button button-primary" data-view="daily" type="button">ابدئي الرصد اليومي</button>
+              <button class="button button-primary" data-view="daily" type="button">ابدأ الرصد اليومي</button>
             </div>
           </div>
 
           <div class="setup-banner" id="setupBanner" hidden>
             <div>
               <strong>لنبدأ تجهيز السجل</strong>
-              <p>أضيفي أسماء الطالبات، ثم اختاري المهارة وابدئي أول رصد.</p>
+              <p>أضف أسماء الطلاب، ثم اختر المهارة وابدأ أول رصد.</p>
             </div>
             <div class="setup-actions">
-              <button class="button button-primary" data-action="bulk-add-students" type="button">إضافة قائمة الطالبات</button>
+              <button class="button button-primary" data-action="bulk-add-students" type="button">إضافة قائمة الطلاب</button>
               <button class="button button-ghost" data-view="settings" type="button">إكمال بيانات الفصل</button>
             </div>
           </div>
@@ -98,7 +101,7 @@
               <div class="panel-header wrap-header">
                 <div>
                   <h3>خريطة التقدم</h3>
-                  <p>انقري على أي خلية لتحديث رصد الطالبة مباشرة.</p>
+                  <p>انقر على أي خلية لتحديث رصد الطالب مباشرة.</p>
                 </div>
                 <div class="inline-filters">
                   <label>
@@ -147,7 +150,7 @@
               <div class="panel-header">
                 <div>
                   <h3>أولويات التدخل</h3>
-                  <p>طالبات يحتجن إلى دعم قريب.</p>
+                  <p>طلاب يحتاجون إلى دعم قريب.</p>
                 </div>
               </div>
               <div id="supportPriorities" class="person-list"></div>
@@ -157,7 +160,7 @@
               <div class="panel-header">
                 <div>
                   <h3>فرص الإثراء</h3>
-                  <p>طالبات جاهزات لمهام أعمق.</p>
+                  <p>طلاب جاهزون لمهام أعمق.</p>
                 </div>
               </div>
               <div id="enrichmentOpportunities" class="person-list"></div>
@@ -170,7 +173,7 @@
             <div>
               <span class="eyebrow">رصد سريع داخل الحصة</span>
               <h2>المتابعة اليومية</h2>
-              <p>اختاري المهارة، ثم سجلي المستوى في ثوانٍ مع اقتراح الإجراء التالي تلقائيًا.</p>
+              <p>اختر المهارة، ثم سجل المستوى في ثوانٍ مع اقتراح الإجراء التالي تلقائيًا.</p>
             </div>
             <div class="heading-actions">
               <button class="button button-secondary" data-action="print-daily-sheet" type="button">طباعة ورقة الحصة</button>
@@ -206,14 +209,14 @@
               <button class="level-pill level-2" data-action="apply-quick-level" data-level="2" type="button">🌿 أتقدم</button>
               <button class="level-pill level-3" data-action="apply-quick-level" data-level="3" type="button">⭐ أتقن</button>
               <button class="level-pill level-4" data-action="apply-quick-level" data-level="4" type="button">💎 أمتد</button>
-              <button class="level-pill absent-pill" data-action="apply-quick-absent" type="button">غائبة</button>
+              <button class="level-pill absent-pill" data-action="apply-quick-absent" type="button">غائب</button>
             </div>
           </section>
 
           <section class="panel">
             <div class="panel-header wrap-header">
               <div>
-                <h3>طالبات الفصل</h3>
+                <h3>طلاب الفصل</h3>
                 <p>يمكن فتح «تفاصيل» لإضافة صورة الحل أو تسجيل شرح صوتي.</p>
               </div>
               <div class="daily-progress" id="dailyProgressLabel">٠ من ٠</div>
@@ -225,25 +228,25 @@
         <section class="app-view" id="view-students" data-view-section="students">
           <div class="page-heading">
             <div>
-              <span class="eyebrow">ملف تعلم لكل طالبة</span>
-              <h2>بطاقات الطالبات</h2>
+              <span class="eyebrow">ملف تعلم لكل طالب</span>
+              <h2>بطاقات الطلاب</h2>
               <p>سجل زمني للمهارات، أنماط الاستجابة، التدخلات، الصور، والتسجيلات الصوتية.</p>
             </div>
             <div class="heading-actions">
               <button class="button button-secondary" data-action="bulk-add-students" type="button">إضافة قائمة</button>
-              <button class="button button-primary" data-action="add-student" type="button">＋ إضافة طالبة</button>
+              <button class="button button-primary" data-action="add-student" type="button">＋ إضافة طالب</button>
             </div>
           </div>
 
           <section class="panel">
             <div class="panel-header wrap-header">
               <div>
-                <h3>قائمة الطالبات</h3>
-                <p id="studentCountLabel">لا توجد طالبات بعد.</p>
+                <h3>قائمة الطلاب</h3>
+                <p id="studentCountLabel">لا يوجد طلاب بعد.</p>
               </div>
               <label class="search-field">
-                <span class="sr-only">البحث عن طالبة</span>
-                <input id="studentSearch" type="search" placeholder="ابحثي بالاسم…" />
+                <span class="sr-only">البحث عن طالب</span>
+                <input id="studentSearch" type="search" placeholder="ابحث بالاسم…" />
               </label>
             </div>
             <div id="studentsGrid" class="students-grid"></div>
@@ -255,7 +258,7 @@
             <div>
               <span class="eyebrow">قائمة قابلة للتخصيص</span>
               <h2>مهارات الرياضيات</h2>
-              <p>أضيفي مهارات المنهج أو عدّلي القائمة الحالية بما يناسب الصف والفصل الدراسي.</p>
+              <p>أضف مهارات المنهج أو عدّل القائمة الحالية بما يناسب الصف والفصل الدراسي.</p>
             </div>
             <div class="heading-actions">
               <button class="button button-secondary" data-action="bulk-add-skills" type="button">إضافة عدة مهارات</button>
@@ -279,7 +282,7 @@
             <div>
               <span class="eyebrow">تقارير قابلة للطباعة والحفظ PDF</span>
               <h2>التقارير والطباعة</h2>
-              <p>اختاري التقرير، ثم اطبعيه مباشرة أو احفظيه من نافذة الطباعة بصيغة PDF.</p>
+              <p>اختر التقرير، ثم اطبعه مباشرة أو احفظه من نافذة الطباعة بصيغة PDF.</p>
             </div>
           </div>
 
@@ -287,7 +290,7 @@
             <button class="report-card" data-action="print-dashboard" type="button">
               <span class="report-icon">▦</span>
               <strong>لوحة ألوان الفصل</strong>
-              <small>خريطة كاملة للطالبات والمهارات</small>
+              <small>خريطة كاملة للطلاب والمهارات</small>
             </button>
             <button class="report-card" data-action="print-daily-sheet" type="button">
               <span class="report-icon">✓</span>
@@ -302,15 +305,15 @@
             <button class="report-card" data-action="print-enrichment-report" type="button">
               <span class="report-icon">💎</span>
               <strong>تقرير الإثراء</strong>
-              <small>الطالبات الجاهزات ومهام الامتداد</small>
+              <small>الطلاب الجاهزون ومهام الامتداد</small>
             </button>
           </div>
 
           <section class="panel">
             <div class="panel-header wrap-header">
               <div>
-                <h3>بطاقة طالبة للطباعة</h3>
-                <p>اختاري طالبة لطباعة ملخص تقدمها وسجلها الأخير.</p>
+                <h3>بطاقة طالب للطباعة</h3>
+                <p>اختر طالبًا لطباعة ملخص تقدمه وسجله الأخير.</p>
               </div>
               <div class="inline-actions">
                 <select id="reportStudentSelect"></select>
@@ -323,7 +326,7 @@
             <div class="panel-header">
               <div>
                 <h3>تصدير البيانات</h3>
-                <p>احتفظي بنسخة احتياطية، أو افتحي السجل في Excel عبر ملف CSV.</p>
+                <p>احتفظ بنسخة احتياطية، أو افتح السجل في Excel عبر ملف CSV.</p>
               </div>
             </div>
             <div class="export-actions">
@@ -347,7 +350,7 @@
           <section class="panel settings-panel">
             <form id="settingsForm" class="settings-form">
               <label>
-                <span>اسم المعلمة</span>
+                <span>اسم المعلم</span>
                 <input id="settingTeacher" type="text" autocomplete="name" placeholder="مثال: أ/ …" />
               </label>
               <label>
@@ -385,19 +388,27 @@
             <div>
               <h3>كيف تُحفظ البيانات؟</h3>
               <p>الأسماء والرصد والصور والتسجيلات الصوتية تُخزن داخل متصفح هذا الجهاز. لا توجد قاعدة بيانات خارجية، ولا تسجيل دخول، ولا إرسال تلقائي للبيانات.</p>
-              <p class="muted">عند الانتقال إلى جهاز آخر استخدمي «نسخة احتياطية كاملة»، ثم استورديها في الجهاز الجديد.</p>
+              <p class="muted">عند الانتقال إلى جهاز آخر استخدم «نسخة احتياطية كاملة»، ثم استوردها في الجهاز الجديد.</p>
             </div>
           </section>
 
           <section class="panel danger-panel">
             <div>
               <h3>مسح السجل</h3>
-              <p>يحذف الطالبات والرصد والمرفقات من هذا الجهاز نهائيًا.</p>
+              <p>يحذف الطلاب والرصد والمرفقات من هذا الجهاز نهائيًا.</p>
             </div>
             <button class="button button-danger" data-action="reset-app" type="button">مسح جميع البيانات</button>
           </section>
         </section>
       </main>
+      <footer class="app-credit-footer">
+        <img src="./assets/interactive-learning-forum-logo.png" alt="شعار ملتقى التعليم التفاعلي" />
+        <div class="app-credit-text">
+          <strong>أ/ فاطمة هزازي</strong>
+          <span>ملتقى التعليم التفاعلي</span>
+          <span>ملتقى معلمي ومعلمات الرياضيات</span>
+        </div>
+      </footer>
     </div>
   </div>
 
@@ -405,24 +416,41 @@
     <form method="dialog" id="studentForm" class="dialog-card">
       <div class="dialog-header">
         <div>
-          <span class="eyebrow">بطاقة طالبة</span>
-          <h3 id="studentDialogTitle">إضافة طالبة</h3>
+          <span class="eyebrow">بطاقة طالب</span>
+          <h3 id="studentDialogTitle">إضافة طالب</h3>
         </div>
         <button class="icon-button" value="cancel" aria-label="إغلاق" type="submit">×</button>
       </div>
       <input id="studentEditId" type="hidden" />
       <label>
-        <span>اسم الطالبة</span>
+        <span>اسم الطالب</span>
         <input id="studentName" type="text" required />
       </label>
       <label>
         <span>الرقم أو الترتيب</span>
         <input id="studentNumber" type="text" inputmode="numeric" placeholder="اختياري" />
       </label>
-      <label>
-        <span>ملاحظة عامة</span>
-        <textarea id="studentGeneralNote" rows="3" placeholder="اختياري"></textarea>
-      </label>
+      <div class="student-note-builder">
+        <div class="form-grid two-columns">
+          <label>
+            <span>نوع الملاحظة</span>
+            <select id="studentNoteCategory">
+              <option value="">دون ملاحظة</option>
+            </select>
+          </label>
+          <label>
+            <span>الملاحظة المناسبة</span>
+            <select id="studentNoteChoice" disabled>
+              <option value="">اختر نوع الملاحظة أولًا</option>
+            </select>
+          </label>
+        </div>
+        <label id="studentNoteOtherWrap" hidden>
+          <span>ملاحظة أخرى</span>
+          <textarea id="studentNoteOther" rows="3" placeholder="اكتب الملاحظة الخاصة هنا"></textarea>
+        </label>
+        <p class="helper-text note-helper">اختر عبارة جاهزة، وعند اختيار «أخرى» يظهر حقل للكتابة.</p>
+      </div>
       <div class="dialog-actions">
         <button class="button button-ghost" value="cancel" type="submit">إلغاء</button>
         <button class="button button-primary" id="saveStudentButton" value="default" type="button">حفظ</button>
@@ -435,12 +463,12 @@
       <div class="dialog-header">
         <div>
           <span class="eyebrow">إضافة سريعة</span>
-          <h3>إضافة قائمة الطالبات</h3>
+          <h3>إضافة قائمة الطلاب</h3>
         </div>
         <button class="icon-button" value="cancel" aria-label="إغلاق" type="submit">×</button>
       </div>
-      <p class="helper-text">اكتبي كل اسم في سطر مستقل. ستُستبعد الأسماء المكررة تلقائيًا.</p>
-      <textarea id="bulkStudentNames" rows="12" placeholder="سارة محمد&#10;نورة علي&#10;ريم أحمد"></textarea>
+      <p class="helper-text">اكتب كل اسم في سطر مستقل. ستُستبعد الأسماء المكررة تلقائيًا.</p>
+      <textarea id="bulkStudentNames" rows="12" placeholder="أحمد محمد&#10;خالد علي&#10;سلمان أحمد"></textarea>
       <div class="dialog-actions">
         <button class="button button-ghost" value="cancel" type="submit">إلغاء</button>
         <button class="button button-primary" id="saveBulkStudentsButton" value="default" type="button">إضافة الأسماء</button>
@@ -496,7 +524,7 @@
         </div>
         <button class="icon-button" value="cancel" aria-label="إغلاق" type="submit">×</button>
       </div>
-      <p class="helper-text">اكتبي في كل سطر: اسم المجال | اسم المهارة. ويمكن كتابة اسم المهارة فقط.</p>
+      <p class="helper-text">اكتب في كل سطر: اسم المجال | اسم المهارة. ويمكن كتابة اسم المهارة فقط.</p>
       <textarea id="bulkSkillNames" rows="12" placeholder="الأعداد والقيمة المنزلية | قراءة الأعداد وكتابتها&#10;الجمع والطرح | الجمع مع إعادة التجميع"></textarea>
       <div class="dialog-actions">
         <button class="button button-ghost" value="cancel" type="submit">إلغاء</button>
@@ -517,7 +545,7 @@
       <input id="entryEditId" type="hidden" />
       <div class="form-grid three-columns">
         <label>
-          <span>الطالبة</span>
+          <span>الطالب</span>
           <select id="entryStudent" required></select>
         </label>
         <label>
@@ -545,23 +573,23 @@
         <label>
           <span>درجة الثقة</span>
           <select id="entryConfidence">
-            <option value="1">١ — مترددة</option>
-            <option value="2" selected>٢ — متوسطة</option>
-            <option value="3">٣ — واثقة</option>
+            <option value="1">١ — متردد</option>
+            <option value="2" selected>٢ — متوسط</option>
+            <option value="3">٣ — واثق</option>
           </select>
         </label>
         <label>
           <span>درجة الاستقلالية</span>
           <select id="entryIndependence">
-            <option value="1">١ — تحتاج إلى مساندة</option>
+            <option value="1">١ — يحتاج إلى مساندة</option>
             <option value="2" selected>٢ — بمساندة محدودة</option>
-            <option value="3">٣ — مستقلة</option>
+            <option value="3">٣ — مستقل</option>
           </select>
         </label>
       </div>
 
       <fieldset class="choice-fieldset">
-        <legend>الطريقة التي ساعدتها في هذه المهارة</legend>
+        <legend>الطريقة التي ساعدته في هذه المهارة</legend>
         <div class="tag-choices" id="learningModesChoices"></div>
       </fieldset>
 
@@ -572,8 +600,8 @@
 
       <div class="form-grid two-columns">
         <label>
-          <span>ملاحظة المعلمة</span>
-          <textarea id="entryNote" rows="4" placeholder="مثال: ترتب المنازل صحيحة عند استخدام المكعبات، لكنها تتردد في التفسير."></textarea>
+          <span>ملاحظة المتابعة</span>
+          <textarea id="entryNote" rows="4" placeholder="مثال: يرتب المنازل بصورة صحيحة عند استخدام المكعبات، لكنه يتردد في التفسير."></textarea>
         </label>
         <label>
           <span>الإجراء التالي المقترح</span>
@@ -586,7 +614,7 @@
         <div class="media-column">
           <div class="media-heading">
             <div>
-              <strong>صورة من حل الطالبة</strong>
+              <strong>صورة من حل الطالب</strong>
               <small>يمكن إرفاق أكثر من صورة.</small>
             </div>
             <label class="button button-secondary file-button">
@@ -601,7 +629,7 @@
         <div class="media-column">
           <div class="media-heading">
             <div>
-              <strong>تسجيل شرح الطالبة</strong>
+              <strong>تسجيل شرح الطالب</strong>
               <small>يعمل الميكروفون عند فتح التطبيق عبر HTTPS.</small>
             </div>
           </div>
@@ -620,7 +648,7 @@
 
       <label class="absent-check">
         <input id="entryAbsent" type="checkbox" />
-        <span>الطالبة غائبة في هذه الحصة</span>
+        <span>الطالب غائب في هذه الحصة</span>
       </label>
 
       <div class="dialog-actions sticky-dialog-actions">

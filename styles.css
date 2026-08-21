@@ -2245,3 +2245,205 @@ label > span,
     font-size: 9pt;
   }
 }
+
+/* الهوية والتذييل - الإصدار ٢ */
+.brand-logo-wrap {
+  padding: 4px;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 18px;
+}
+
+.brand-logo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 14px;
+}
+
+.content-shell {
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  width: 100%;
+  flex: 1 0 auto;
+}
+
+.app-credit-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 31px 22px;
+  padding: 11px 16px;
+  border: 1px solid rgba(15, 118, 110, 0.14);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-soft);
+  color: #42515c;
+}
+
+.app-credit-footer > img {
+  width: 48px;
+  height: 48px;
+  flex: 0 0 48px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.app-credit-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  text-align: center;
+  font-size: 12px;
+}
+
+.app-credit-text strong {
+  color: var(--primary-2);
+  font-size: 13px;
+}
+
+.app-credit-text span {
+  color: var(--muted);
+}
+
+.app-credit-text span + span::before {
+  content: "•";
+  margin-left: 9px;
+  color: var(--accent);
+}
+
+.student-note-builder {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  border-radius: 15px;
+  background: linear-gradient(135deg, #ffffff, #f3fbf9);
+}
+
+.note-helper {
+  margin: -2px 0 0;
+  font-size: 11px;
+}
+
+.student-note-panel {
+  background: linear-gradient(120deg, #fff, var(--accent-soft));
+}
+
+.student-note-display-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.student-note-display-header h3 {
+  margin: 0;
+}
+
+.note-category-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary-2);
+  border: 1px solid rgba(15, 118, 110, 0.15);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+@media (max-width: 980px) {
+  .app-credit-footer {
+    margin-inline: 20px;
+  }
+}
+
+@media (max-width: 720px) {
+  .app-credit-footer {
+    align-items: center;
+    margin: 0 12px 14px;
+    padding: 10px 12px;
+  }
+
+  .app-credit-footer > img {
+    width: 42px;
+    height: 42px;
+    flex-basis: 42px;
+  }
+
+  .app-credit-text {
+    gap: 4px 7px;
+    font-size: 10px;
+  }
+
+  .app-credit-text strong {
+    width: 100%;
+    font-size: 12px;
+  }
+
+  .app-credit-text span + span::before {
+    margin-left: 7px;
+  }
+
+  .student-note-display-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media print {
+  .print-title-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .print-brand-logo {
+    width: 14mm;
+    height: 14mm;
+    object-fit: contain;
+  }
+
+  .print-credit {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 700;
+  }
+
+  .print-credit img {
+    width: 7mm;
+    height: 7mm;
+    object-fit: contain;
+  }
+}
+
+.sidebar-footer strong,
+.sidebar-footer span {
+  display: block;
+}
+
+.sidebar-footer strong {
+  color: #f2d890;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.sidebar-footer span {
+  margin-top: 2px;
+  color: rgba(255,255,255,0.48);
+  font-size: 9px;
+  line-height: 1.55;
+}

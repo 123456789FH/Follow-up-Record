@@ -8,7 +8,7 @@
 
   const LEVELS = {
     1: { name: 'أبدأ', emoji: '🌱', short: 'دعم', description: 'بحاجة إلى دعم' },
-    2: { name: 'أتقدم', emoji: '🌿', short: 'تقدّم', description: 'تتعلم بمساندة' },
+    2: { name: 'أتقدم', emoji: '🌿', short: 'تقدّم', description: 'يتعلم بمساندة' },
     3: { name: 'أتقن', emoji: '⭐', short: 'إتقان', description: 'أداء مستقل' },
     4: { name: 'أمتد', emoji: '💎', short: 'إثراء', description: 'تعميم وإبداع' }
   };
@@ -28,29 +28,105 @@
     { id: 'KH', code: 'خ', label: 'اختيار خطة الحل', action: 'استخدام بطاقة خطوات: أفهم، أخطط، أحل، أتحقق؛ مع مقارنة أكثر من استراتيجية.' },
     { id: 'H', code: 'ح', label: 'خطأ حسابي', action: 'تدريب قصير على الدقة مع التحقق العكسي ومراجعة العملية الأساسية.' },
     { id: 'R', code: 'ر', label: 'قراءة بيانات', action: 'تدريب موجه على قراءة الجدول أو الرسم وتحديد العنوان والوحدات والبيانات.' },
-    { id: 'T', code: 'ت', label: 'التفسير والتبرير', action: 'طلب تفسير شفهي أو كتابي: كيف عرفتِ؟ ولماذا كانت الإجابة منطقية؟' },
+    { id: 'T', code: 'ت', label: 'التفسير والتبرير', action: 'طلب تفسير شفهي أو كتابي: كيف عرفت؟ ولماذا كانت الإجابة منطقية؟' },
     { id: 'N', code: 'ن', label: 'تنظيم الخطوات', action: 'استخدام منظم بصري أو مربعات مرتبة لكتابة الخطوات والتحقق من كل خطوة.' },
     { id: 'D', code: 'د', label: 'تثبيت وتدريب', action: 'تطبيق تدريب موزع قصير في بداية الحصص القادمة بدل التكرار المكثف في حصة واحدة.' }
   ];
 
+
+  const NOTE_OTHER_VALUE = '__other__';
+  const STUDENT_NOTE_CATEGORIES = [
+    {
+      id: 'academic',
+      label: 'التقدم الأكاديمي',
+      options: [
+        { id: 'mastered', label: 'متقن للمهارة' },
+        { id: 'progressing', label: 'يتقدم بمساندة' },
+        { id: 'needs_practice', label: 'يحتاج إلى تدريب إضافي' },
+        { id: 'needs_reteach', label: 'يحتاج إلى إعادة شرح' },
+        { id: 'needs_individual', label: 'يحتاج إلى متابعة فردية' },
+        { id: 'improved', label: 'تحسن ملحوظ' },
+        { id: 'basic_errors', label: 'يخطئ في العمليات الأساسية' },
+        { id: 'organize_steps', label: 'يحتاج إلى تنظيم خطوات الحل' }
+      ]
+    },
+    {
+      id: 'learning',
+      label: 'الاستجابة لطرائق التعلم',
+      options: [
+        { id: 'hands_on', label: 'يستفيد من المحسوسات' },
+        { id: 'visual', label: 'يستفيد من التمثيل البصري' },
+        { id: 'oral', label: 'يستفيد من الشرح الشفهي' },
+        { id: 'written', label: 'يستفيد من الخطوات المكتوبة' },
+        { id: 'digital', label: 'يستفيد من النشاط الرقمي' },
+        { id: 'cooperative', label: 'يستفيد من العمل التعاوني' }
+      ]
+    },
+    {
+      id: 'participation',
+      label: 'المشاركة والاستقلالية',
+      options: [
+        { id: 'active', label: 'متفاعل داخل الحصة' },
+        { id: 'low_participation', label: 'يحتاج إلى رفع مستوى المشاركة' },
+        { id: 'cooperates', label: 'يتعاون مع زملائه' },
+        { id: 'focus', label: 'يحتاج إلى تحسين التركيز' },
+        { id: 'on_time', label: 'ينجز المهام في الوقت المحدد' },
+        { id: 'task_followup', label: 'يحتاج إلى متابعة إنجاز المهام' }
+      ]
+    },
+    {
+      id: 'support',
+      label: 'الدعم والمتابعة',
+      options: [
+        { id: 'remedial_short', label: 'يحتاج إلى دعم علاجي قصير' },
+        { id: 'home_followup', label: 'يحتاج إلى متابعة منزلية' },
+        { id: 'confidence', label: 'يحتاج إلى تعزيز الثقة' },
+        { id: 'distributed_practice', label: 'يحتاج إلى تكرار التدريب بصورة موزعة' },
+        { id: 'alternate_method', label: 'يحتاج إلى تغيير طريقة عرض المهارة' }
+      ]
+    },
+    {
+      id: 'enrichment',
+      label: 'الإثراء والتميز',
+      options: [
+        { id: 'distinguished', label: 'متميز ويستحق مهمة إثرائية' },
+        { id: 'multiple_strategies', label: 'يحل بأكثر من استراتيجية' },
+        { id: 'justifies', label: 'يبرر الإجابة بوضوح' },
+        { id: 'fast_accurate', label: 'ينجز المهمة بسرعة ودقة' },
+        { id: 'deeper_challenge', label: 'جاهز لتحدٍ رياضي أعمق' }
+      ]
+    },
+    {
+      id: 'attendance',
+      label: 'الحضور والإنجاز',
+      options: [
+        { id: 'absent_assessment', label: 'غاب عن التقييم' },
+        { id: 'not_completed', label: 'لم ينجز المهمة' },
+        { id: 'completed_after_guidance', label: 'أكمل المهمة بعد التوجيه' },
+        { id: 'needs_completion', label: 'يحتاج إلى استكمال النشاط' }
+      ]
+    },
+    { id: 'other', label: 'أخرى', options: [] }
+  ];
+
   const DEFAULT_SKILLS = [
-    { domain: 'الأعداد والقيمة المنزلية', name: 'قراءة الأعداد وكتابتها', description: 'تقرأ الطالبة العدد وتمثله وتكتبه بصيغ متعددة.' },
-    { domain: 'الأعداد والقيمة المنزلية', name: 'القيمة المنزلية', description: 'تحدد قيمة الرقم بحسب منزلته وتمثل العدد.' },
-    { domain: 'الأعداد والقيمة المنزلية', name: 'مقارنة الأعداد وترتيبها', description: 'تقارن الأعداد وتستخدم الرموز وترتبها.' },
-    { domain: 'الجمع والطرح', name: 'الجمع', description: 'تختار استراتيجية مناسبة وتتحقق من معقولية الناتج.' },
-    { domain: 'الجمع والطرح', name: 'الطرح', description: 'تطرح بدقة وتربط الطرح بالجمع عند التحقق.' },
-    { domain: 'الضرب والقسمة', name: 'الضرب', description: 'تمثل الضرب وتستعمل الحقائق الأساسية.' },
-    { domain: 'الضرب والقسمة', name: 'القسمة', description: 'تمثل القسمة وتربطها بالضرب.' },
-    { domain: 'حل المسألة', name: 'حل المسألة اللفظية', description: 'تفهم المطلوب وتختار الخطة وتفسر الإجابة.' },
-    { domain: 'القياس', name: 'الطول والكتلة والسعة', description: 'تختار الوحدة المناسبة وتقيس وتقارن.' },
-    { domain: 'القياس', name: 'الزمن والنقود', description: 'تقرأ الوقت وتتعامل مع القيم النقدية في مواقف حياتية.' },
-    { domain: 'الهندسة', name: 'الأشكال الهندسية', description: 'تصف الأشكال والمجسمات وتصنفها حسب خصائصها.' },
-    { domain: 'البيانات', name: 'قراءة البيانات وتمثيلها', description: 'تقرأ الجداول والرسوم وتستنتج منها.' },
-    { domain: 'الكسور', name: 'الكسور', description: 'تمثل الكسور وتقارنها في نماذج بسيطة.' }
+    { domain: 'الأعداد والقيمة المنزلية', name: 'قراءة الأعداد وكتابتها', description: 'يقرأ الطالب العدد ويمثله ويكتبه بصيغ متعددة.' },
+    { domain: 'الأعداد والقيمة المنزلية', name: 'القيمة المنزلية', description: 'يحدد قيمة الرقم بحسب منزلته ويمثل العدد.' },
+    { domain: 'الأعداد والقيمة المنزلية', name: 'مقارنة الأعداد وترتيبها', description: 'يقارن الأعداد ويستخدم الرموز ويرتبها.' },
+    { domain: 'الجمع والطرح', name: 'الجمع', description: 'يختار استراتيجية مناسبة ويتحقق من معقولية الناتج.' },
+    { domain: 'الجمع والطرح', name: 'الطرح', description: 'يطرح بدقة ويربط الطرح بالجمع عند التحقق.' },
+    { domain: 'الضرب والقسمة', name: 'الضرب', description: 'يمثل الضرب ويستعمل الحقائق الأساسية.' },
+    { domain: 'الضرب والقسمة', name: 'القسمة', description: 'يمثل القسمة ويربطها بالضرب.' },
+    { domain: 'حل المسألة', name: 'حل المسألة اللفظية', description: 'يفهم المطلوب ويختار الخطة ويفسر الإجابة.' },
+    { domain: 'القياس', name: 'الطول والكتلة والسعة', description: 'يختار الوحدة المناسبة ويقيس ويقارن.' },
+    { domain: 'القياس', name: 'الزمن والنقود', description: 'يقرأ الوقت ويتعامل مع القيم النقدية في مواقف حياتية.' },
+    { domain: 'الهندسة', name: 'الأشكال الهندسية', description: 'يصف الأشكال والمجسمات ويصنفها حسب خصائصها.' },
+    { domain: 'البيانات', name: 'قراءة البيانات وتمثيلها', description: 'يقرأ الجداول والرسوم ويستنتج منها.' },
+    { domain: 'الكسور', name: 'الكسور', description: 'يمثل الكسور ويقارنها في نماذج بسيطة.' }
   ];
 
   const DEFAULT_STATE = {
-    version: 1,
+    version: 2,
     settings: {
       teacher: '',
       school: '',
@@ -102,8 +178,20 @@
     if (!state || typeof state !== 'object') state = structuredCloneSafe(DEFAULT_STATE);
     state.settings = { ...DEFAULT_STATE.settings, ...(state.settings || {}) };
     state.students = Array.isArray(state.students) ? state.students : [];
+    state.students.forEach(student => {
+      if (student.note && !student.noteCategory && !student.noteChoice && !student.noteOther) {
+        student.noteCategory = 'other';
+        student.noteChoice = NOTE_OTHER_VALUE;
+        student.noteOther = student.note;
+      }
+      student.noteCategory = student.noteCategory || '';
+      student.noteChoice = student.noteChoice || '';
+      student.noteOther = student.noteOther || '';
+      student.note = getStudentNoteText(student);
+    });
     state.skills = Array.isArray(state.skills) && state.skills.length ? state.skills : structuredCloneSafe(DEFAULT_STATE.skills);
     state.entries = Array.isArray(state.entries) ? state.entries : [];
+    state.version = 2;
     saveState();
   }
 
@@ -123,7 +211,7 @@
       localStorage.setItem(APP_KEY, JSON.stringify(state));
     } catch (error) {
       console.error('تعذر حفظ البيانات:', error);
-      showToast('تعذر الحفظ؛ قد تكون مساحة التخزين ممتلئة. صدّري نسخة احتياطية.', 'error');
+      showToast('تعذر الحفظ؛ قد تكون مساحة التخزين ممتلئة. صدّر نسخة احتياطية.', 'error');
     }
   }
 
@@ -206,6 +294,8 @@
     });
 
     $('#saveStudentButton')?.addEventListener('click', saveStudentFromDialog);
+    $('#studentNoteCategory')?.addEventListener('change', () => renderStudentNoteChoices($('#studentNoteCategory')?.value || ''));
+    $('#studentNoteChoice')?.addEventListener('change', toggleStudentNoteOther);
     $('#saveBulkStudentsButton')?.addEventListener('click', saveBulkStudents);
     $('#saveSkillButton')?.addEventListener('click', saveSkillFromDialog);
     $('#saveBulkSkillsButton')?.addEventListener('click', saveBulkSkills);
@@ -284,7 +374,7 @@
       case 'print-enrichment-report': printEnrichmentReport(); break;
       case 'print-selected-student': {
         const studentId = $('#reportStudentSelect')?.value;
-        if (studentId) printStudentCard(studentId); else showToast('اختاري طالبة أولًا.', 'warning');
+        if (studentId) printStudentCard(studentId); else showToast('اختر طالبًا أولًا.', 'warning');
         break;
       }
       case 'print-student': printStudentCard(actionButton.dataset.studentId); break;
@@ -357,8 +447,7 @@
   function renderContext() {
     const classParts = [state.settings.grade, state.settings.className].filter(Boolean);
     $('#contextClassName').textContent = classParts.length ? classParts.join(' — ') : 'الفصل غير محدد';
-    $('#contextTeacherName').textContent = state.settings.teacher || 'أضيفي بياناتك من الإعدادات';
-    $('#sidebarFooter').textContent = state.settings.teacher || 'بوصلة الرياضيات';
+    $('#contextTeacherName').textContent = state.settings.teacher || 'أضف بياناتك من الإعدادات';
   }
 
   function renderSkillOptions() {
@@ -401,7 +490,7 @@
     const supportStudents = calculateStudentSummaries(maxDate).filter(item => item.ratedCount && item.average < 2.5).length;
 
     $('#dashboardStats').innerHTML = [
-      statCard('◉', toArabicDigits(state.students.length), 'عدد الطالبات', 'rgba(15,118,110,0.11)'),
+      statCard('◉', toArabicDigits(state.students.length), 'عدد الطلاب', 'rgba(15,118,110,0.11)'),
       statCard('✓', toArabicDigits(todayEntries), 'عمليات الرصد اليوم', 'rgba(201,154,46,0.14)'),
       statCard('⭐', `${toArabicDigits(masteryRate)}٪`, 'نسبة الإتقان فأعلى', 'rgba(45,157,104,0.12)'),
       statCard('🌱', toArabicDigits(supportStudents), 'أولوية دعم حالية', 'rgba(233,107,132,0.12)')
@@ -452,12 +541,12 @@
     if (!container) return;
 
     if (!state.students.length) {
-      container.innerHTML = emptyState('لا توجد طالبات بعد', 'أضيفي قائمة الطالبات لتظهر خريطة التقدم.');
+      container.innerHTML = emptyState('لا يوجد طلاب بعد', 'أضف قائمة الطلاب لتظهر خريطة التقدم.');
       return;
     }
 
     if (!skills.length) {
-      container.innerHTML = emptyState('لا توجد مهارات', 'أضيفي مهارة واحدة على الأقل من صفحة المهارات.');
+      container.innerHTML = emptyState('لا توجد مهارات', 'أضف مهارة واحدة على الأقل من صفحة المهارات.');
       return;
     }
 
@@ -475,7 +564,7 @@
 
     container.innerHTML = `
       <table class="heatmap-table">
-        <thead><tr><th class="student-name-cell">الطالبة</th>${headerCells}</tr></thead>
+        <thead><tr><th class="student-name-cell">الطالب</th>${headerCells}</tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
   }
@@ -485,7 +574,7 @@
     if (!container) return;
     const total = ratedItems.length;
     if (!total) {
-      container.innerHTML = emptyState('لا توجد بيانات كافية', 'ابدئي أول رصد ليظهر توزيع المستويات.');
+      container.innerHTML = emptyState('لا توجد بيانات كافية', 'ابدأ أول رصد ليظهر توزيع المستويات.');
       return;
     }
 
@@ -521,7 +610,7 @@
     })).filter(group => group.students.length);
 
     if (!groups.length) {
-      container.innerHTML = emptyState('لم تتكوّن المجموعات بعد', 'أضيفي رصدًا للطالبات لتظهر المجموعات المرنة.');
+      container.innerHTML = emptyState('لم تتكوّن المجموعات بعد', 'أضف رصدًا للطلاب لتظهر المجموعات المرنة.');
       return;
     }
 
@@ -568,7 +657,7 @@
     const enrichmentContainer = $('#enrichmentOpportunities');
 
     supportContainer.innerHTML = support.length ? support.map(item => personRow(item, 'support')).join('') : emptyState('لا توجد أولويات واضحة', 'ستظهر هنا بعد توفر رصد كافٍ.');
-    enrichmentContainer.innerHTML = enrichment.length ? enrichment.map(item => personRow(item, 'enrichment')).join('') : emptyState('لا توجد فرص إثراء محددة', 'ستظهر الطالبات الجاهزات بعد الرصد.');
+    enrichmentContainer.innerHTML = enrichment.length ? enrichment.map(item => personRow(item, 'enrichment')).join('') : emptyState('لا توجد فرص إثراء محددة', 'سيظهر الطلاب الجاهزون بعد الرصد.');
   }
 
   function personRow(item, type) {
@@ -590,12 +679,12 @@
     const skillId = $('#dailySkill')?.value || state.skills[0]?.id || '';
 
     if (!state.students.length) {
-      container.innerHTML = emptyState('لم تُضاف الطالبات', 'أضيفي قائمة الطالبات أولًا من صفحة بطاقات الطالبات.');
+      container.innerHTML = emptyState('لم يُضف الطلاب', 'أضف قائمة الطلاب أولًا من صفحة بطاقات الطلاب.');
       updateDailyProgress();
       return;
     }
     if (!skillId) {
-      container.innerHTML = emptyState('لا توجد مهارة للرصد', 'أضيفي مهارة من صفحة المهارات.');
+      container.innerHTML = emptyState('لا توجد مهارة للرصد', 'أضف مهارة من صفحة المهارات.');
       updateDailyProgress();
       return;
     }
@@ -608,7 +697,7 @@
         <table class="quick-entry-table">
           <thead>
             <tr>
-              <th>الطالبة</th>
+              <th>الطالب</th>
               <th>قبلي</th>
               <th>المستوى بعد التعلم</th>
               <th>الطريقة المساعدة</th>
@@ -666,7 +755,7 @@
       absent: entry?.absent ? 'true' : 'false',
       mode,
       error,
-      suggestion: entry?.action || (entry?.postLevel ? generateSuggestion(entry) : 'اختاري المستوى ليظهر الإجراء التالي.')
+      suggestion: entry?.action || (entry?.postLevel ? generateSuggestion(entry) : 'اختر المستوى ليظهر الإجراء التالي.')
     };
   }
 
@@ -694,7 +783,7 @@
   function renderQuickLevelButtons(level, absent) {
     return `<div class="quick-levels">
       ${[1,2,3,4].map(item => `<button class="quick-level-button ${Number(level) === item && absent !== 'true' ? 'selected' : ''}" data-quick-level="${item}" data-level="${item}" type="button" title="${LEVELS[item].description}">${LEVELS[item].emoji}<br>${LEVELS[item].name}</button>`).join('')}
-      <button class="quick-level-button absent ${absent === 'true' ? 'selected' : ''}" data-quick-absent type="button">غ<br>غائبة</button>
+      <button class="quick-level-button absent ${absent === 'true' ? 'selected' : ''}" data-quick-absent type="button">غ<br>غائب</button>
     </div>`;
   }
 
@@ -746,7 +835,7 @@
   function updateQuickSuggestionForStudent(studentId) {
     if (!studentId) return;
     const draft = collectQuickStudent(studentId);
-    const text = draft.absent ? 'غائبة — لا يُحتسب مستوى في هذه الحصة.' : draft.postLevel ? generateSuggestion(draft) : 'اختاري المستوى ليظهر الإجراء التالي.';
+    const text = draft.absent ? 'غائب — لا يُحتسب مستوى في هذه الحصة.' : draft.postLevel ? generateSuggestion(draft) : 'اختر المستوى ليظهر الإجراء التالي.';
     $$(`[data-quick-student="${CSS.escape(studentId)}"] [data-quick-suggestion]`).forEach(element => { element.textContent = text; });
   }
 
@@ -792,12 +881,12 @@
       return Boolean(draft.postLevel || draft.absent);
     }).length;
     const label = $('#dailyProgressLabel');
-    if (label) label.textContent = `${toArabicDigits(completed)} من ${toArabicDigits(total)} تم رصدهن`;
+    if (label) label.textContent = `${toArabicDigits(completed)} من ${toArabicDigits(total)} تم رصدهم`;
   }
 
   function saveQuickEntries() {
     if (!state.students.length) {
-      showToast('أضيفي الطالبات أولًا.', 'warning');
+      showToast('أضف الطلاب أولًا.', 'warning');
       return;
     }
 
@@ -829,7 +918,7 @@
 
     saveState();
     renderAll();
-    showToast(`تم حفظ رصد ${toArabicDigits(savedCount)} طالبة.`, 'success');
+    showToast(`تم حفظ رصد ${toArabicDigits(savedCount)} طالبًا.`, 'success');
   }
 
   function openQuickDetails(studentId) {
@@ -847,10 +936,10 @@
     if (!grid) return;
     const search = normalizeName($('#studentSearch')?.value || '');
     const students = state.students.filter(student => !search || normalizeName(student.name).includes(search));
-    $('#studentCountLabel').textContent = `${toArabicDigits(state.students.length)} طالبة في السجل`;
+    $('#studentCountLabel').textContent = `${toArabicDigits(state.students.length)} طالبًا في السجل`;
 
     if (!students.length) {
-      grid.innerHTML = emptyState(state.students.length ? 'لا توجد نتيجة مطابقة' : 'لم تُضاف طالبات بعد', state.students.length ? 'جرّبي كتابة جزء آخر من الاسم.' : 'استخدمي زر «إضافة قائمة» لإدخال الأسماء بسرعة.');
+      grid.innerHTML = emptyState(state.students.length ? 'لا توجد نتيجة مطابقة' : 'لم يُضف طلاب بعد', state.students.length ? 'جرّب كتابة جزء آخر من الاسم.' : 'استخدم زر «إضافة قائمة» لإدخال الأسماء بسرعة.');
       return;
     }
 
@@ -876,13 +965,97 @@
     }).join('');
   }
 
+  function buildStudentNoteControls() {
+    const categorySelect = $('#studentNoteCategory');
+    if (!categorySelect) return;
+    categorySelect.innerHTML = '<option value="">دون ملاحظة</option>' + STUDENT_NOTE_CATEGORIES
+      .map(category => `<option value="${escapeHTML(category.id)}">${escapeHTML(category.label)}</option>`)
+      .join('');
+    renderStudentNoteChoices('');
+  }
+
+  function renderStudentNoteChoices(categoryId, selectedChoice = '') {
+    const choiceSelect = $('#studentNoteChoice');
+    if (!choiceSelect) return;
+    const category = STUDENT_NOTE_CATEGORIES.find(item => item.id === categoryId);
+    if (!category) {
+      choiceSelect.innerHTML = '<option value="">اختر نوع الملاحظة أولًا</option>';
+      choiceSelect.value = '';
+      choiceSelect.disabled = true;
+      toggleStudentNoteOther();
+      return;
+    }
+
+    if (category.id === 'other') {
+      choiceSelect.innerHTML = '<option value="__other__">ملاحظة أخرى</option>';
+      choiceSelect.value = NOTE_OTHER_VALUE;
+      choiceSelect.disabled = true;
+      toggleStudentNoteOther();
+      return;
+    }
+
+    const options = [...category.options, { id: NOTE_OTHER_VALUE, label: 'أخرى ضمن هذا النوع' }];
+    choiceSelect.disabled = false;
+    choiceSelect.innerHTML = '<option value="">اختر الملاحظة المناسبة</option>' + options
+      .map(option => `<option value="${escapeHTML(option.id)}">${escapeHTML(option.label)}</option>`)
+      .join('');
+    choiceSelect.value = options.some(option => option.id === selectedChoice) ? selectedChoice : '';
+    toggleStudentNoteOther();
+  }
+
+  function toggleStudentNoteOther() {
+    const wrap = $('#studentNoteOtherWrap');
+    if (!wrap) return;
+    const categoryId = $('#studentNoteCategory')?.value || '';
+    wrap.hidden = !(categoryId === 'other' || $('#studentNoteChoice')?.value === NOTE_OTHER_VALUE);
+  }
+
+  function getStudentNoteData(student = {}) {
+    if (student.noteCategory || student.noteChoice || student.noteOther) {
+      return {
+        noteCategory: student.noteCategory || '',
+        noteChoice: student.noteChoice || '',
+        noteOther: student.noteOther || ''
+      };
+    }
+    if (student.note) {
+      return { noteCategory: 'other', noteChoice: NOTE_OTHER_VALUE, noteOther: student.note };
+    }
+    return { noteCategory: '', noteChoice: '', noteOther: '' };
+  }
+
+  function collectStudentNoteData() {
+    const noteCategory = $('#studentNoteCategory')?.value || '';
+    const noteChoice = noteCategory === 'other' ? NOTE_OTHER_VALUE : (noteCategory ? ($('#studentNoteChoice')?.value || '') : '');
+    const noteOther = noteChoice === NOTE_OTHER_VALUE ? ($('#studentNoteOther')?.value.trim() || '') : '';
+    return { noteCategory, noteChoice, noteOther };
+  }
+
+  function getStudentNoteText(student = {}) {
+    const data = getStudentNoteData(student);
+    if (!data.noteCategory || !data.noteChoice) return '';
+    if (data.noteChoice === NOTE_OTHER_VALUE) return String(data.noteOther || student.note || '').trim();
+    const category = STUDENT_NOTE_CATEGORIES.find(item => item.id === data.noteCategory);
+    const option = category?.options.find(item => item.id === data.noteChoice);
+    return option?.label || String(student.note || '').trim();
+  }
+
+  function getStudentNoteCategoryLabel(student = {}) {
+    const data = getStudentNoteData(student);
+    return STUDENT_NOTE_CATEGORIES.find(item => item.id === data.noteCategory)?.label || '';
+  }
+
   function openStudentDialog(studentId = '') {
     const student = state.students.find(item => item.id === studentId);
     $('#studentEditId').value = student?.id || '';
     $('#studentName').value = student?.name || '';
     $('#studentNumber').value = student?.number || '';
-    $('#studentGeneralNote').value = student?.note || '';
-    $('#studentDialogTitle').textContent = student ? 'تعديل بيانات الطالبة' : 'إضافة طالبة';
+    const noteData = getStudentNoteData(student || {});
+    $('#studentNoteCategory').value = noteData.noteCategory;
+    renderStudentNoteChoices(noteData.noteCategory, noteData.noteChoice);
+    $('#studentNoteOther').value = noteData.noteOther;
+    toggleStudentNoteOther();
+    $('#studentDialogTitle').textContent = student ? 'تعديل بيانات الطالب' : 'إضافة طالب';
     openDialog('studentDialog');
     setTimeout(() => $('#studentName')?.focus(), 50);
   }
@@ -891,7 +1064,7 @@
     const id = $('#studentEditId').value;
     const name = $('#studentName').value.trim();
     if (!name) {
-      showToast('اكتبي اسم الطالبة.', 'warning');
+      showToast('اكتب اسم الطالب.', 'warning');
       $('#studentName').focus();
       return;
     }
@@ -902,15 +1075,35 @@
       return;
     }
 
+    const noteData = collectStudentNoteData();
+    if (noteData.noteCategory && noteData.noteCategory !== 'other' && !noteData.noteChoice) {
+      showToast('اختر الملاحظة المناسبة من القائمة.', 'warning');
+      $('#studentNoteChoice')?.focus();
+      return;
+    }
+    if (noteData.noteChoice === NOTE_OTHER_VALUE && !noteData.noteOther) {
+      showToast('اكتب الملاحظة الأخرى.', 'warning');
+      $('#studentNoteOther')?.focus();
+      return;
+    }
+    const note = getStudentNoteText(noteData);
+
     if (id) {
       const student = state.students.find(item => item.id === id);
-      if (student) Object.assign(student, { name, number: $('#studentNumber').value.trim(), note: $('#studentGeneralNote').value.trim(), updatedAt: new Date().toISOString() });
+      if (student) Object.assign(student, {
+        name,
+        number: $('#studentNumber').value.trim(),
+        ...noteData,
+        note,
+        updatedAt: new Date().toISOString()
+      });
     } else {
       state.students.push({
         id: uid('student'),
         name,
         number: $('#studentNumber').value.trim(),
-        note: $('#studentGeneralNote').value.trim(),
+        ...noteData,
+        note,
         createdAt: new Date().toISOString()
       });
     }
@@ -919,13 +1112,13 @@
     $('#studentDialog').close();
     renderAll();
     if (id && $('#studentCardDialog')?.open) openStudentCard(id);
-    showToast(id ? 'تم تحديث بيانات الطالبة.' : 'تمت إضافة الطالبة.', 'success');
+    showToast(id ? 'تم تحديث بيانات الطالب.' : 'تمت إضافة الطالب.', 'success');
   }
 
   function saveBulkStudents() {
     const lines = $('#bulkStudentNames').value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
     if (!lines.length) {
-      showToast('اكتبي اسمًا واحدًا على الأقل.', 'warning');
+      showToast('اكتب اسمًا واحدًا على الأقل.', 'warning');
       return;
     }
 
@@ -934,7 +1127,7 @@
     lines.forEach((line, index) => {
       const normalized = normalizeName(line);
       if (!normalized || existingNames.has(normalized)) return;
-      state.students.push({ id: uid('student'), name: line, number: String(state.students.length + 1), note: '', createdAt: new Date().toISOString() });
+      state.students.push({ id: uid('student'), name: line, number: String(state.students.length + 1), noteCategory: '', noteChoice: '', noteOther: '', note: '', createdAt: new Date().toISOString() });
       existingNames.add(normalized);
       added += 1;
     });
@@ -943,13 +1136,13 @@
     $('#bulkStudentNames').value = '';
     $('#bulkStudentsDialog').close();
     renderAll();
-    showToast(`تمت إضافة ${toArabicDigits(added)} طالبة.`, 'success');
+    showToast(`تمت إضافة ${toArabicDigits(added)} طالبًا.`, 'success');
   }
 
   async function deleteStudent(studentId) {
     const student = state.students.find(item => item.id === studentId);
     if (!student) return;
-    if (!confirm(`سيتم حذف «${student.name}» وجميع سجلاتها ومرفقاتها. هل أنتِ متأكدة؟`)) return;
+    if (!confirm(`سيتم حذف «${student.name}» وجميع سجلاته ومرفقاته. هل أنت متأكد؟`)) return;
 
     const entries = state.entries.filter(entry => entry.studentId === studentId);
     for (const entry of entries) {
@@ -960,7 +1153,7 @@
     saveState();
     $('#studentCardDialog')?.close();
     renderAll();
-    showToast('تم حذف الطالبة وسجلاتها.', 'success');
+    showToast('تم حذف الطالب وسجلاته.', 'success');
   }
 
   async function openStudentCard(studentId) {
@@ -972,6 +1165,8 @@
     const entries = state.entries.filter(entry => entry.studentId === studentId).sort(sortEntriesDescending);
     const mastered = summary?.latestEntries.filter(entry => Number(entry.postLevel) >= 3).length || 0;
     const average = summary?.ratedCount ? summary.average.toFixed(1) : '—';
+    const studentNote = getStudentNoteText(student);
+    const studentNoteCategory = getStudentNoteCategoryLabel(student);
 
     const skillRows = state.skills.map(skill => {
       const entry = getLatestEntry(studentId, skill.id, todayISO(), false);
@@ -984,7 +1179,7 @@
         </div>`;
     }).join('');
 
-    const history = entries.length ? entries.map(entry => renderHistoryEntry(entry)).join('') : emptyState('لا يوجد رصد لهذه الطالبة', 'أضيفي أول متابعة تفصيلية أو استخدمي الرصد اليومي.');
+    const history = entries.length ? entries.map(entry => renderHistoryEntry(entry)).join('') : emptyState('لا يوجد رصد لهذا الطالب', 'أضف أول متابعة تفصيلية أو استخدم الرصد اليومي.');
 
     $('#studentCardContent').innerHTML = `
       <div class="student-profile-header">
@@ -1004,10 +1199,10 @@
         <div class="profile-stat"><strong>${toArabicDigits(summary?.ratedCount || 0)}</strong><span>مهارة مرصودة</span></div>
         <div class="profile-stat"><strong>${toArabicDigits(average)}</strong><span>متوسط التقدم</span></div>
         <div class="profile-stat"><strong>${toArabicDigits(mastered)}</strong><span>إتقان فأعلى</span></div>
-        <div class="profile-stat"><strong>${toArabicDigits(summary?.supportCount || 0)}</strong><span>تحتاج إلى متابعة</span></div>
+        <div class="profile-stat"><strong>${toArabicDigits(summary?.supportCount || 0)}</strong><span>أولوية متابعة</span></div>
       </div>
 
-      ${student.note ? `<section class="panel"><h3>ملاحظة عامة</h3><p>${escapeHTML(student.note)}</p></section>` : ''}
+      ${studentNote ? `<section class="panel student-note-panel"><div class="student-note-display-header"><h3>الملاحظة العامة</h3>${studentNoteCategory ? `<span class="note-category-badge">${escapeHTML(studentNoteCategory)}</span>` : ''}</div><p>${escapeHTML(studentNote)}</p></section>` : ''}
 
       <section class="panel">
         <div class="panel-header"><div><h3>تقدم المهارات</h3><p>بحسب أحدث رصد لكل مهارة.</p></div></div>
@@ -1029,7 +1224,7 @@
     const modes = (entry.learningModes || []).map(id => LEARNING_MODES.find(mode => mode.id === id)?.label).filter(Boolean);
     const errors = (entry.errorCodes || []).map(id => ERROR_CODES.find(error => error.id === id)).filter(Boolean);
     const media = entry.media || [];
-    const imageHTML = media.filter(item => item.type.startsWith('image')).map(item => `<div class="media-preview-item"><img data-media-id="${escapeHTML(item.id)}" alt="صورة من حل الطالبة" /></div>`).join('');
+    const imageHTML = media.filter(item => item.type.startsWith('image')).map(item => `<div class="media-preview-item"><img data-media-id="${escapeHTML(item.id)}" alt="صورة من حل الطالب" /></div>`).join('');
     const audioHTML = media.filter(item => item.type.startsWith('audio')).map(item => `<div class="audio-item"><audio data-media-id="${escapeHTML(item.id)}" controls></audio></div>`).join('');
 
     return `
@@ -1037,7 +1232,7 @@
         <div class="history-entry-header">
           <div><strong>${escapeHTML(skill?.name || 'مهارة محذوفة')}</strong><small>${escapeHTML(formatDate(entry.date))}${entry.assessmentTool ? ` — ${escapeHTML(entry.assessmentTool)}` : ''}</small></div>
           <div class="row-actions">
-            <span class="level-badge level-${level}">${entry.absent ? 'غائبة' : level ? `${LEVELS[level].emoji} ${LEVELS[level].name}` : 'غير محدد'}</span>
+            <span class="level-badge level-${level}">${entry.absent ? 'غائب' : level ? `${LEVELS[level].emoji} ${LEVELS[level].name}` : 'غير محدد'}</span>
             <button class="table-action" data-action="edit-entry" data-entry-id="${escapeHTML(entry.id)}" type="button">تعديل</button>
             <button class="table-action danger" data-action="delete-entry" data-entry-id="${escapeHTML(entry.id)}" type="button">حذف</button>
           </div>
@@ -1065,7 +1260,7 @@
     const container = $('#skillsTableContainer');
     if (!container) return;
     if (!state.skills.length) {
-      container.innerHTML = emptyState('لا توجد مهارات', 'أضيفي مهارات المنهج لتبدئي الرصد.');
+      container.innerHTML = emptyState('لا توجد مهارات', 'أضف مهارات المنهج لتبدأ الرصد.');
       return;
     }
 
@@ -1107,7 +1302,7 @@
     const domain = $('#skillDomain').value.trim();
     const description = $('#skillDescription').value.trim();
     if (!name) {
-      showToast('اكتبي اسم المهارة.', 'warning');
+      showToast('اكتب اسم المهارة.', 'warning');
       return;
     }
 
@@ -1133,7 +1328,7 @@
   function saveBulkSkills() {
     const lines = $('#bulkSkillNames').value.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
     if (!lines.length) {
-      showToast('اكتبي مهارة واحدة على الأقل.', 'warning');
+      showToast('اكتب مهارة واحدة على الأقل.', 'warning');
       return;
     }
 
@@ -1161,8 +1356,8 @@
     if (!skill) return;
     const relatedEntries = state.entries.filter(entry => entry.skillId === skillId);
     const message = relatedEntries.length
-      ? `ترتبط بالمهارة «${skill.name}» ${toArabicDigits(relatedEntries.length)} متابعة. سيؤدي الحذف إلى حذفها ومرفقاتها أيضًا. هل أنتِ متأكدة؟`
-      : `هل تريدين حذف المهارة «${skill.name}»؟`;
+      ? `ترتبط بالمهارة «${skill.name}» ${toArabicDigits(relatedEntries.length)} متابعة. سيؤدي الحذف إلى حذفها ومرفقاتها أيضًا. هل أنت متأكد؟`
+      : `هل تريد حذف المهارة «${skill.name}»؟`;
     if (!confirm(message)) return;
 
     for (const entry of relatedEntries) {
@@ -1197,6 +1392,8 @@
         <input type="checkbox" value="${error.id}" />
         <strong>${error.code}</strong><span>${escapeHTML(error.label)}</span>
       </label>`).join('');
+
+    buildStudentNoteControls();
   }
 
   function refreshChoiceSelections() {
@@ -1243,7 +1440,7 @@
     const select = $('#entryStudent');
     if (!select) return;
     const previous = select.value;
-    select.innerHTML = state.students.map(student => `<option value="${escapeHTML(student.id)}">${escapeHTML(student.name)}</option>`).join('') || '<option value="">لا توجد طالبات</option>';
+    select.innerHTML = state.students.map(student => `<option value="${escapeHTML(student.id)}">${escapeHTML(student.name)}</option>`).join('') || '<option value="">لا يوجد طلاب</option>';
     if (state.students.some(student => student.id === previous)) select.value = previous;
   }
 
@@ -1270,7 +1467,7 @@
   function generateSuggestion(data = {}) {
     if (data.absent) return '';
     const level = Number(data.postLevel);
-    if (!level) return 'اختاري مستوى التقدم لتوليد إجراء مناسب.';
+    if (!level) return 'اختر مستوى التقدم لتوليد إجراء مناسب.';
 
     const modes = data.learningModes || [];
     const errors = data.errorCodes || [];
@@ -1291,7 +1488,7 @@
     if (level === 1) parts.push(`إعادة تقديم المفهوم في مجموعة دعم صغيرة ${modePhrase}، ثم التحقق بسؤال واحد مباشر.`);
     if (level === 2) parts.push(`تدريب موجه من ثلاث مسائل متدرجة ${modePhrase}، مع تقليل التلميحات تدريجيًا.`);
     if (level === 3) parts.push(confidence <= 1
-      ? 'تعزيز الثقة بطلب شرح خطوة واحدة لزميلة، ثم سؤال تثبيت مستقل في بداية الحصة القادمة.'
+      ? 'تعزيز الثقة بطلب شرح خطوة واحدة لزميل، ثم سؤال تثبيت مستقل في بداية الحصة القادمة.'
       : 'تقديم سؤال تثبيت قصير في بداية الحصة القادمة، ثم الانتقال إلى تطبيق جديد دون مساعدة.');
     if (level === 4) parts.push('مهمة إثرائية مفتوحة: تأليف مسألة، أو اكتشاف خطأ، أو حل الموقف بطريقتين مع تبرير الاختيار.');
 
@@ -1320,11 +1517,11 @@
   async function saveDetailedEntry() {
     const data = collectEntryFormData(true);
     if (!data.studentId || !data.skillId || !data.date) {
-      showToast('اختاري الطالبة والتاريخ والمهارة.', 'warning');
+      showToast('اختر الطالب والتاريخ والمهارة.', 'warning');
       return;
     }
     if (!data.absent && !data.postLevel) {
-      showToast('اختاري مستوى الطالبة بعد التعلم.', 'warning');
+      showToast('اختر مستوى الطالب بعد التعلم.', 'warning');
       return;
     }
 
@@ -1384,7 +1581,7 @@
   async function deleteEntry(entryId) {
     const entry = state.entries.find(item => item.id === entryId);
     if (!entry) return;
-    if (!confirm('هل تريدين حذف هذه المتابعة ومرفقاتها؟')) return;
+    if (!confirm('هل تريد حذف هذه المتابعة ومرفقاتها؟')) return;
     for (const media of entry.media || []) await deleteMedia(media.id);
     state.entries = state.entries.filter(item => item.id !== entryId);
     saveState();
@@ -1458,7 +1655,7 @@
 
     images.innerHTML = entry.media.filter(item => item.type.startsWith('image')).map(item => `
       <div class="media-preview-item">
-        <img data-media-id="${escapeHTML(item.id)}" alt="صورة من حل الطالبة" />
+        <img data-media-id="${escapeHTML(item.id)}" alt="صورة من حل الطالب" />
         <button class="media-remove" data-action="remove-media" data-entry-id="${escapeHTML(entry.id)}" data-media-id="${escapeHTML(item.id)}" type="button" aria-label="حذف الصورة">×</button>
       </div>`).join('');
 
@@ -1474,7 +1671,7 @@
   async function removeExistingMedia(entryId, mediaId) {
     const entry = state.entries.find(item => item.id === entryId);
     if (!entry) return;
-    if (!confirm('هل تريدين حذف هذا المرفق؟')) return;
+    if (!confirm('هل تريد حذف هذا المرفق؟')) return;
     entry.media = (entry.media || []).filter(item => item.id !== mediaId);
     entry.updatedAt = new Date().toISOString();
     await deleteMedia(mediaId);
@@ -1485,7 +1682,7 @@
 
   async function startRecording() {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') {
-      showToast('هذا المتصفح لا يدعم التسجيل الصوتي. جرّبي Chrome أو Edge عبر اتصال HTTPS.', 'warning');
+      showToast('هذا المتصفح لا يدعم التسجيل الصوتي. جرّب Chrome أو Edge عبر اتصال HTTPS.', 'warning');
       return;
     }
 
@@ -1510,7 +1707,7 @@
         const extension = type.includes('mp4') ? 'm4a' : 'webm';
         const url = URL.createObjectURL(blob);
         objectUrls.add(url);
-        pendingAudio = { blob, type, name: `شرح-الطالبة-${Date.now()}.${extension}`, url };
+        pendingAudio = { blob, type, name: `شرح-الطالب-${Date.now()}.${extension}`, url };
         const preview = $('#pendingAudioPreview');
         preview.src = url;
         preview.hidden = false;
@@ -1604,7 +1801,7 @@
     const previous = select.value;
     select.innerHTML = state.students.length
       ? state.students.map(student => `<option value="${escapeHTML(student.id)}">${escapeHTML(student.name)}</option>`).join('')
-      : '<option value="">لا توجد طالبات</option>';
+      : '<option value="">لا يوجد طلاب</option>';
     if (state.students.some(student => student.id === previous)) select.value = previous;
   }
 
@@ -1677,7 +1874,7 @@
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    if (!confirm('سيستبدل الاستيراد البيانات الحالية في هذا الجهاز. هل تريدين المتابعة؟')) return;
+    if (!confirm('سيستبدل الاستيراد البيانات الحالية في هذا الجهاز. هل تريد المتابعة؟')) return;
 
     try {
       const backup = JSON.parse(await file.text());
@@ -1702,7 +1899,7 @@
   }
 
   function exportCSV() {
-    const headers = ['التاريخ', 'اسم الطالبة', 'المهارة', 'المجال', 'الأداة', 'المستوى القبلي', 'المستوى بعد التعلم', 'الثقة', 'الاستقلالية', 'الطريقة المساعدة', 'بصمة الخطأ', 'الملاحظة', 'الإجراء التالي', 'غياب'];
+    const headers = ['التاريخ', 'اسم الطالب', 'الملاحظة العامة للطالب', 'المهارة', 'المجال', 'الأداة', 'المستوى القبلي', 'المستوى بعد التعلم', 'الثقة', 'الاستقلالية', 'الطريقة المساعدة', 'بصمة الخطأ', 'ملاحظة المتابعة', 'الإجراء التالي', 'غياب'];
     const rows = state.entries.slice().sort(sortEntriesDescending).map(entry => {
       const student = state.students.find(item => item.id === entry.studentId);
       const skill = state.skills.find(item => item.id === entry.skillId);
@@ -1714,6 +1911,7 @@
       return [
         entry.date,
         student?.name || '',
+        getStudentNoteText(student || {}),
         skill?.name || '',
         skill?.domain || '',
         entry.assessmentTool || '',
@@ -1769,8 +1967,8 @@
   }
 
   async function resetApp() {
-    if (!confirm('سيتم حذف جميع الطالبات والرصد والصور والتسجيلات من هذا الجهاز. لا يمكن التراجع. هل أنتِ متأكدة؟')) return;
-    if (!confirm('تأكيد أخير: هل تريدين مسح السجل كاملًا؟')) return;
+    if (!confirm('سيتم حذف جميع الطلاب والرصد والصور والتسجيلات من هذا الجهاز. لا يمكن التراجع. هل أنت متأكد؟')) return;
+    if (!confirm('تأكيد أخير: هل تريد مسح السجل كاملًا؟')) return;
     await clearMediaDatabase();
     state = structuredCloneSafe(DEFAULT_STATE);
     saveState();
@@ -1785,20 +1983,28 @@
     return `
       <header class="print-header">
         <div class="print-header-side">${escapeHTML(right || 'بيانات الفصل: __________________')}</div>
-        <div class="print-title"><h1>${escapeHTML(title)}</h1><p>${escapeHTML(subtitle || state.settings.reportTitle)}</p></div>
-        <div class="print-header-side">${escapeHTML(left || 'المعلمة: __________________')}</div>
+        <div class="print-title-wrap">
+          <img class="print-brand-logo" src="./assets/interactive-learning-forum-logo.png" alt="شعار ملتقى التعليم التفاعلي" />
+          <div class="print-title"><h1>${escapeHTML(title)}</h1><p>${escapeHTML(subtitle || state.settings.reportTitle)}</p></div>
+        </div>
+        <div class="print-header-side">${escapeHTML(left || 'المعلم: __________________')}</div>
       </header>`;
   }
 
   function printFooter() {
-    return `<footer class="print-footer"><span>بوصلة الرياضيات — سجل متابعة يراعي الفروق الفردية</span><span>تاريخ الطباعة: ${escapeHTML(formatDate(todayISO()))}</span></footer>`;
+    return `<footer class="print-footer"><div class="print-credit"><img src="./assets/interactive-learning-forum-logo.png" alt="" /><span>أ/ فاطمة هزازي | ملتقى التعليم التفاعلي | ملتقى معلمي ومعلمات الرياضيات</span></div><span>تاريخ الطباعة: ${escapeHTML(formatDate(todayISO()))}</span></footer>`;
   }
 
   function launchPrint(html) {
     const printArea = $('#printArea');
     printArea.innerHTML = `<div class="print-document">${html}</div>`;
     printArea.setAttribute('aria-hidden', 'false');
-    setTimeout(() => window.print(), 80);
+    const images = Array.from(printArea.querySelectorAll('img'));
+    const imageReady = images.map(image => image.complete ? Promise.resolve() : new Promise(resolve => {
+      image.addEventListener('load', resolve, { once: true });
+      image.addEventListener('error', resolve, { once: true });
+    }));
+    Promise.all(imageReady).finally(() => setTimeout(() => window.print(), 100));
   }
 
   function printDashboard() {
@@ -1818,12 +2024,12 @@
     launchPrint(`
       ${printHeader('لوحة ألوان الفصل', `أحدث رصد حتى ${formatDate(maxDate)}`)}
       <div class="print-summary">
-        <div class="print-summary-item"><strong>${toArabicDigits(state.students.length)}</strong><span>الطالبات</span></div>
+        <div class="print-summary-item"><strong>${toArabicDigits(state.students.length)}</strong><span>الطلاب</span></div>
         <div class="print-summary-item"><strong>${toArabicDigits(skills.length)}</strong><span>المهارات</span></div>
         <div class="print-summary-item"><strong>${toArabicDigits(rated.length)}</strong><span>خلايا مرصودة</span></div>
         <div class="print-summary-item"><strong>${toArabicDigits(mastery)}٪</strong><span>إتقان فأعلى</span></div>
       </div>
-      <table class="print-table"><thead><tr><th class="student-print-name">الطالبة</th>${header}</tr></thead><tbody>${rows}</tbody></table>
+      <table class="print-table"><thead><tr><th class="student-print-name">الطالب</th>${header}</tr></thead><tbody>${rows}</tbody></table>
       ${printFooter()}`);
   }
 
@@ -1840,7 +2046,7 @@
         <td>${toArabicDigits(index + 1)}</td>
         <td class="student-print-name">${escapeHTML(student.name)}</td>
         <td>${entry?.preLevel ? LEVELS[entry.preLevel].name : ''}</td>
-        <td class="print-level-cell print-level-${entry?.postLevel || 0}">${entry?.absent ? 'غائبة' : entry?.postLevel ? LEVELS[entry.postLevel].name : ''}</td>
+        <td class="print-level-cell print-level-${entry?.postLevel || 0}">${entry?.absent ? 'غائب' : entry?.postLevel ? LEVELS[entry.postLevel].name : ''}</td>
         <td>${escapeHTML(mode)}</td>
         <td>${escapeHTML(errors)}</td>
         <td>${escapeHTML(entry?.action || '')}</td>
@@ -1850,7 +2056,7 @@
     launchPrint(`
       ${printHeader('ورقة المتابعة اليومية', `${skill?.name || 'المهارة: __________________'} — ${formatDate(date)}`)}
       <table class="print-table">
-        <thead><tr><th>م</th><th class="student-print-name">الطالبة</th><th>قبلي</th><th>بعد التعلم</th><th>الطريقة المساعدة</th><th>بصمة الخطأ</th><th>الإجراء التالي</th></tr></thead>
+        <thead><tr><th>م</th><th class="student-print-name">الطالب</th><th>قبلي</th><th>بعد التعلم</th><th>الطريقة المساعدة</th><th>بصمة الخطأ</th><th>الإجراء التالي</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <section class="print-section"><h2>ملاحظات الحصة وخطة الحصة القادمة</h2><div class="print-note-box"></div></section>
@@ -1877,7 +2083,7 @@
 
     launchPrint(`
       ${printHeader('تقرير الدعم العلاجي', 'الأولويات والإجراءات المقترحة بحسب أحدث رصد')}
-      <table class="print-table"><thead><tr><th>م</th><th class="student-print-name">الطالبة</th><th>المهارة</th><th>المستوى</th><th>بصمة الخطأ</th><th>الإجراء التالي</th><th>آخر رصد</th></tr></thead><tbody>${rows}</tbody></table>
+      <table class="print-table"><thead><tr><th>م</th><th class="student-print-name">الطالب</th><th>المهارة</th><th>المستوى</th><th>بصمة الخطأ</th><th>الإجراء التالي</th><th>آخر رصد</th></tr></thead><tbody>${rows}</tbody></table>
       <section class="print-section"><h2>خطة المتابعة</h2><div class="print-note-box"></div></section>
       ${printFooter()}`);
   }
@@ -1895,8 +2101,8 @@
     const rows = records.length ? records.map((item, index) => `<tr><td>${toArabicDigits(index + 1)}</td><td class="student-print-name">${escapeHTML(item.student.name)}</td><td>${escapeHTML(item.skill.name)}</td><td>${escapeHTML(item.entry.action || generateSuggestion(item.entry))}</td><td>${escapeHTML(formatDate(item.entry.date))}</td></tr>`).join('') : '<tr><td colspan="5">لا توجد مهارات في مستوى الامتداد حتى الآن.</td></tr>';
 
     launchPrint(`
-      ${printHeader('تقرير الإثراء والامتداد', 'مهام مقترحة للطالبات الجاهزات للتحدي')}
-      <table class="print-table"><thead><tr><th>م</th><th class="student-print-name">الطالبة</th><th>المهارة</th><th>مهمة الامتداد المقترحة</th><th>آخر رصد</th></tr></thead><tbody>${rows}</tbody></table>
+      ${printHeader('تقرير الإثراء والامتداد', 'مهام مقترحة للطلاب الجاهزين للتحدي')}
+      <table class="print-table"><thead><tr><th>م</th><th class="student-print-name">الطالب</th><th>المهارة</th><th>مهمة الامتداد المقترحة</th><th>آخر رصد</th></tr></thead><tbody>${rows}</tbody></table>
       <section class="print-section"><h2>أفكار إثرائية إضافية</h2><div class="print-note-box">تأليف مسألة — حل بأكثر من استراتيجية — اكتشاف خطأ وتفسيره — تصميم لعبة رياضية — ربط المهارة بموقف حياتي.</div></section>
       ${printFooter()}`);
   }
@@ -1906,6 +2112,8 @@
     if (!student) return;
     const summary = calculateStudentSummaries().find(item => item.student.id === studentId);
     const entries = state.entries.filter(entry => entry.studentId === studentId).sort(sortEntriesDescending).slice(0, 12);
+    const studentNote = getStudentNoteText(student);
+    const studentNoteCategory = getStudentNoteCategoryLabel(student);
     const skillRows = state.skills.map(skill => {
       const entry = getLatestEntry(student.id, skill.id, todayISO(), false);
       const level = entry ? Number(entry.postLevel) : 0;
@@ -1914,18 +2122,18 @@
     const historyRows = entries.length ? entries.map((entry, index) => {
       const skill = state.skills.find(item => item.id === entry.skillId);
       const errors = (entry.errorCodes || []).map(id => ERROR_CODES.find(item => item.id === id)?.code).filter(Boolean).join('، ');
-      return `<tr><td>${toArabicDigits(index + 1)}</td><td>${escapeHTML(formatDate(entry.date))}</td><td>${escapeHTML(skill?.name || 'مهارة محذوفة')}</td><td>${entry.absent ? 'غائبة' : entry.postLevel ? LEVELS[entry.postLevel].name : ''}</td><td>${escapeHTML(errors)}</td><td>${escapeHTML(entry.note || '')}</td></tr>`;
+      return `<tr><td>${toArabicDigits(index + 1)}</td><td>${escapeHTML(formatDate(entry.date))}</td><td>${escapeHTML(skill?.name || 'مهارة محذوفة')}</td><td>${entry.absent ? 'غائب' : entry.postLevel ? LEVELS[entry.postLevel].name : ''}</td><td>${escapeHTML(errors)}</td><td>${escapeHTML(entry.note || '')}</td></tr>`;
     }).join('') : '<tr><td colspan="6">لا توجد متابعات بعد.</td></tr>';
 
     launchPrint(`
-      ${printHeader(`بطاقة الطالبة: ${student.name}`, [state.settings.grade, state.settings.className].filter(Boolean).join(' — '))}
+      ${printHeader(`بطاقة الطالب: ${student.name}`, [state.settings.grade, state.settings.className].filter(Boolean).join(' — '))}
       <div class="print-summary">
         <div class="print-summary-item"><strong>${toArabicDigits(summary?.ratedCount || 0)}</strong><span>مهارة مرصودة</span></div>
         <div class="print-summary-item"><strong>${toArabicDigits(summary?.average ? summary.average.toFixed(1) : '—')}</strong><span>متوسط التقدم</span></div>
         <div class="print-summary-item"><strong>${toArabicDigits(summary?.supportCount || 0)}</strong><span>مهارة تحتاج دعمًا</span></div>
         <div class="print-summary-item"><strong>${toArabicDigits(summary?.enrichmentCount || 0)}</strong><span>فرصة إثراء</span></div>
       </div>
-      ${student.note ? `<section class="print-section"><h2>ملاحظة عامة</h2><div class="print-note-box">${escapeHTML(student.note)}</div></section>` : ''}
+      ${studentNote ? `<section class="print-section"><h2>الملاحظة العامة${studentNoteCategory ? ` - ${escapeHTML(studentNoteCategory)}` : ''}</h2><div class="print-note-box">${escapeHTML(studentNote)}</div></section>` : ''}
       <section class="print-section"><h2>ملخص المهارات</h2><table class="print-table"><thead><tr><th class="student-print-name">المهارة</th><th>المستوى</th><th>آخر رصد</th><th>الخطوة التالية</th></tr></thead><tbody>${skillRows}</tbody></table></section>
       <section class="print-section"><h2>أحدث المتابعات</h2><table class="print-table"><thead><tr><th>م</th><th>التاريخ</th><th>المهارة</th><th>المستوى</th><th>الخطأ</th><th>الملاحظة</th></tr></thead><tbody>${historyRows}</tbody></table></section>
       ${printFooter()}`);
