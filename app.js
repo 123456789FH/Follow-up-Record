@@ -109,6 +109,54 @@
     { id: 'other', label: 'أخرى', options: [] }
   ];
 
+
+  const REWARD_TYPES = {
+    star: { id: 'star', icon: '⭐', label: 'نجمة', points: 1 },
+    glow_star: { id: 'glow_star', icon: '🌟', label: 'نجمة تميز', points: 2 },
+    badge: { id: 'badge', icon: '🏅', label: 'وسام', points: 3 }
+  };
+
+  const MOTIVATION_BADGES = [
+    { id: 'perseverance', icon: '🌱', label: 'وسام المثابر', description: 'استمر في المحاولة ولم يستسلم.' },
+    { id: 'thinker', icon: '🧠', label: 'وسام المفكر الرياضي', description: 'اختار استراتيجية ذكية ومناسبة.' },
+    { id: 'explainer', icon: '💬', label: 'وسام المفسر البارع', description: 'شرح خطوات الحل وفسرها بوضوح.' },
+    { id: 'accuracy', icon: '🎯', label: 'وسام الدقة', description: 'أنجز الحل بصورة صحيحة ومنظمة.' },
+    { id: 'progress', icon: '📈', label: 'وسام التقدم', description: 'انتقل إلى مستوى أعلى في المهارة.' },
+    { id: 'investigator', icon: '🔍', label: 'وسام المحقق', description: 'اكتشف خطأ وصححه وفسر سبب التصحيح.' },
+    { id: 'flexibility', icon: '🔄', label: 'وسام المرونة', description: 'حل الموقف بأكثر من استراتيجية.' },
+    { id: 'cooperation', icon: '🤝', label: 'وسام المتعاون', description: 'دعم زملاءه وعمل بروح الفريق.' },
+    { id: 'creativity', icon: '💎', label: 'وسام الإبداع', description: 'قدم فكرة أو حلاً غير تقليدي.' },
+    { id: 'independence', icon: '🧭', label: 'وسام الاستقلالية', description: 'أنجز المهمة بثقة واستقلالية.' },
+    { id: 'mastery', icon: '⭐', label: 'وسام الإتقان', description: 'أتقن المهارة وطبقها بصورة مستقلة.' }
+  ];
+
+  const MOTIVATION_REASONS = [
+    { id: 'progress', label: 'أظهر تحسنًا ملحوظًا' },
+    { id: 'mastery', label: 'أتقن المهارة' },
+    { id: 'explanation', label: 'شرح الحل بوضوح' },
+    { id: 'strategy', label: 'استخدم استراتيجية مناسبة' },
+    { id: 'multiple_methods', label: 'حل بأكثر من طريقة' },
+    { id: 'verification', label: 'تحقق من صحة الإجابة' },
+    { id: 'perseverance', label: 'أظهر مثابرة في حل المسألة' },
+    { id: 'participation', label: 'شارك بفاعلية' },
+    { id: 'cooperation', label: 'تعاون مع زملائه' },
+    { id: 'independence', label: 'أنجز المهمة باستقلالية' },
+    { id: 'creativity', label: 'قدم فكرة إبداعية' },
+    { id: 'homework', label: 'التزم بأداء الواجب' },
+    { id: 'organization', label: 'نظم خطوات الحل بصورة واضحة' },
+    { id: 'other', label: 'أخرى' }
+  ];
+
+  const GROUP_CRITERIA = [
+    { id: 'cooperation', icon: '🤝', label: 'التعاون' },
+    { id: 'quality', icon: '✨', label: 'جودة الإنجاز' },
+    { id: 'accuracy', icon: '✅', label: 'صحة الحل' },
+    { id: 'explanation', icon: '💬', label: 'تفسير الإجابة' },
+    { id: 'organization', icon: '🗂️', label: 'تنظيم العمل' },
+    { id: 'perseverance', icon: '🌱', label: 'المثابرة' },
+    { id: 'rules', icon: '🎯', label: 'الالتزام بقواعد النشاط' }
+  ];
+
   const DEFAULT_SKILLS = [
     { domain: 'الأعداد والقيمة المنزلية', name: 'قراءة الأعداد وكتابتها', description: 'يقرأ الطالب العدد ويمثله ويكتبه بصيغ متعددة.' },
     { domain: 'الأعداد والقيمة المنزلية', name: 'القيمة المنزلية', description: 'يحدد قيمة الرقم بحسب منزلته ويمثل العدد.' },
@@ -126,7 +174,7 @@
   ];
 
   const DEFAULT_STATE = {
-    version: 2,
+    version: 3,
     settings: {
       teacher: '',
       school: '',
@@ -142,11 +190,17 @@
       ...skill,
       createdAt: new Date().toISOString()
     })),
-    entries: []
+    entries: [],
+    motivation: {
+      rewards: [],
+      groups: [],
+      suggestions: []
+    }
   };
 
   let state = loadState();
   let currentView = 'dashboard';
+  let currentMotivationMode = 'students';
   let deferredInstallPrompt = null;
   let mediaRecorder = null;
   let recordingStream = null;
@@ -191,7 +245,26 @@
     });
     state.skills = Array.isArray(state.skills) && state.skills.length ? state.skills : structuredCloneSafe(DEFAULT_STATE.skills);
     state.entries = Array.isArray(state.entries) ? state.entries : [];
-    state.version = 2;
+    state.motivation = state.motivation && typeof state.motivation === 'object' ? state.motivation : {};
+    state.motivation.rewards = Array.isArray(state.motivation.rewards) ? state.motivation.rewards : [];
+    state.motivation.groups = Array.isArray(state.motivation.groups) ? state.motivation.groups : [];
+    state.motivation.suggestions = Array.isArray(state.motivation.suggestions) ? state.motivation.suggestions : [];
+    state.motivation.groups.forEach(group => {
+      group.memberIds = Array.isArray(group.memberIds) ? group.memberIds.filter(id => state.students.some(student => student.id === id)) : [];
+    });
+    state.motivation.rewards = state.motivation.rewards.filter(reward => {
+      if (reward.targetType === 'student') return state.students.some(student => student.id === reward.targetId);
+      if (reward.targetType === 'group') return state.motivation.groups.some(group => group.id === reward.targetId);
+      return false;
+    });
+    state.motivation.rewards.forEach(reward => {
+      const linkedSkill = state.skills.find(skill => skill.id === reward.skillId);
+      reward.skillName = reward.skillName || linkedSkill?.name || '';
+      reward.reasonText = reward.reasonText || MOTIVATION_REASONS.find(item => item.id === reward.reasonId)?.label || '';
+      reward.points = Number.isFinite(Number(reward.points)) ? Number(reward.points) : (REWARD_TYPES[reward.rewardType]?.points || 0);
+    });
+    state.motivation.suggestions = state.motivation.suggestions.filter(suggestion => state.students.some(student => student.id === suggestion.studentId));
+    state.version = 3;
     saveState();
   }
 
@@ -301,6 +374,11 @@
     $('#saveBulkSkillsButton')?.addEventListener('click', saveBulkSkills);
     $('#saveQuickEntriesButton')?.addEventListener('click', saveQuickEntries);
     $('#saveEntryButton')?.addEventListener('click', saveDetailedEntry);
+    $('#saveRewardButton')?.addEventListener('click', saveRewardFromDialog);
+    $('#saveMotivationGroupButton')?.addEventListener('click', saveMotivationGroup);
+    $('#rewardType')?.addEventListener('change', updateRewardDialogFields);
+    $('#rewardReason')?.addEventListener('change', updateRewardDialogFields);
+    $('#rewardTargetPicker')?.addEventListener('change', updateRewardTargetFromPicker);
     $('#regenerateSuggestionButton')?.addEventListener('click', () => {
       $('#entryAction').value = generateSuggestion(collectEntryFormData(false));
     });
@@ -311,6 +389,10 @@
     $('#dailyDate')?.addEventListener('change', renderDaily);
     $('#dailySkill')?.addEventListener('change', renderDaily);
     $('#dailyAssessmentTool')?.addEventListener('change', renderDaily);
+    $('#motivationStudentSearch')?.addEventListener('input', renderMotivation);
+    $('#motivationSkillFilter')?.addEventListener('change', renderMotivation);
+    $('#motivationPeriodFilter')?.addEventListener('change', renderMotivation);
+    $('#motivationStudentSort')?.addEventListener('change', renderMotivation);
 
     $('#entryImageInput')?.addEventListener('change', handleImageSelection);
     $('#startRecordingButton')?.addEventListener('click', startRecording);
@@ -368,10 +450,24 @@
         date: $('#dashboardDateFilter')?.value || todayISO()
       }); break;
       case 'quick-details': openQuickDetails(actionButton.dataset.studentId); break;
+      case 'switch-motivation-mode': switchMotivationMode(actionButton.dataset.mode); break;
+      case 'award-from-header': openRewardForHeader(); break;
+      case 'award-student': openRewardDialog({ targetType: 'student', targetId: actionButton.dataset.studentId, rewardType: actionButton.dataset.rewardType || 'star' }); break;
+      case 'award-group': openRewardDialog({ targetType: 'group', targetId: actionButton.dataset.groupId, rewardType: actionButton.dataset.rewardType || 'star', criterionId: actionButton.dataset.criterionId || '' }); break;
+      case 'add-motivation-group': openMotivationGroupDialog(); break;
+      case 'edit-motivation-group': openMotivationGroupDialog(actionButton.dataset.groupId); break;
+      case 'delete-motivation-group': deleteMotivationGroup(actionButton.dataset.groupId); break;
+      case 'open-reward-history': openRewardHistory(actionButton.dataset.targetType, actionButton.dataset.targetId); break;
+      case 'close-reward-history': $('#rewardHistoryDialog')?.close(); break;
+      case 'delete-reward': deleteReward(actionButton.dataset.rewardId); break;
+      case 'approve-reward-suggestion': approveRewardSuggestion(actionButton.dataset.suggestionId); break;
+      case 'dismiss-reward-suggestion': dismissRewardSuggestion(actionButton.dataset.suggestionId); break;
       case 'print-dashboard': printDashboard(); break;
       case 'print-daily-sheet': printDailySheet(); break;
       case 'print-support-report': printSupportReport(); break;
       case 'print-enrichment-report': printEnrichmentReport(); break;
+      case 'print-motivation-students': printMotivationStudents(); break;
+      case 'print-motivation-groups': printMotivationGroups(); break;
       case 'print-selected-student': {
         const studentId = $('#reportStudentSelect')?.value;
         if (studentId) printStudentCard(studentId); else showToast('اختر طالبًا أولًا.', 'warning');
@@ -379,6 +475,7 @@
       }
       case 'print-student': printStudentCard(actionButton.dataset.studentId); break;
       case 'export-csv': exportCSV(); break;
+      case 'export-motivation-csv': exportMotivationCSV(); break;
       case 'export-backup': exportBackup(); break;
       case 'import-backup': $('#backupFileInput')?.click(); break;
       case 'reset-app': resetApp(); break;
@@ -425,6 +522,7 @@
 
     if (view === 'dashboard') renderDashboard();
     if (view === 'daily') renderDaily();
+    if (view === 'motivation') renderMotivation();
     if (view === 'students') renderStudents();
     if (view === 'skills') renderSkills();
     if (view === 'reports') renderReports();
@@ -438,6 +536,7 @@
     renderSkillOptions();
     renderDashboard();
     renderDaily();
+    renderMotivation();
     renderStudents();
     renderSkills();
     renderReports();
@@ -472,6 +571,20 @@
     if (dashboardFilter) {
       dashboardFilter.innerHTML = '<option value="all">جميع المهارات</option>' + state.skills.map(skill => `<option value="${escapeHTML(skill.id)}">${escapeHTML(skill.name)}</option>`).join('');
       dashboardFilter.value = state.skills.some(skill => skill.id === previousFilter) ? previousFilter : 'all';
+    }
+
+    const motivationFilter = $('#motivationSkillFilter');
+    const previousMotivationFilter = motivationFilter?.value || 'all';
+    if (motivationFilter) {
+      motivationFilter.innerHTML = '<option value="all">جميع المهارات</option>' + state.skills.map(skill => `<option value="${escapeHTML(skill.id)}">${escapeHTML(skill.name)}</option>`).join('');
+      motivationFilter.value = state.skills.some(skill => skill.id === previousMotivationFilter) ? previousMotivationFilter : 'all';
+    }
+
+    const rewardSkill = $('#rewardSkill');
+    const previousRewardSkill = rewardSkill?.value || '';
+    if (rewardSkill) {
+      rewardSkill.innerHTML = '<option value="">اختر المهارة</option>' + state.skills.map(skill => `<option value="${escapeHTML(skill.id)}">${escapeHTML(skill.name)}</option>`).join('');
+      rewardSkill.value = state.skills.some(skill => skill.id === previousRewardSkill) ? previousRewardSkill : '';
     }
   }
 
@@ -913,6 +1026,7 @@
       });
 
       if (!existing) state.entries.push(base);
+      queueMotivationSuggestion(base);
       savedCount += 1;
     });
 
@@ -1150,6 +1264,9 @@
     }
     state.entries = state.entries.filter(entry => entry.studentId !== studentId);
     state.students = state.students.filter(item => item.id !== studentId);
+    state.motivation.rewards = state.motivation.rewards.filter(reward => !(reward.targetType === 'student' && reward.targetId === studentId));
+    state.motivation.suggestions = state.motivation.suggestions.filter(suggestion => suggestion.studentId !== studentId);
+    state.motivation.groups.forEach(group => { group.memberIds = (group.memberIds || []).filter(id => id !== studentId); });
     saveState();
     $('#studentCardDialog')?.close();
     renderAll();
@@ -1167,6 +1284,11 @@
     const average = summary?.ratedCount ? summary.average.toFixed(1) : '—';
     const studentNote = getStudentNoteText(student);
     const studentNoteCategory = getStudentNoteCategoryLabel(student);
+    const motivation = summarizeStudentRewards(studentId);
+    const motivationHistory = motivation.rewards.length ? motivation.rewards.slice(0, 8).map(reward => {
+      const skillName = rewardSkillName(reward);
+      return `<div class="student-reward-row"><span class="student-reward-symbol">${reward.rewardType === 'badge' ? (rewardBadgeInfo(reward)?.icon || '🏅') : rewardTypeInfo(reward).icon}</span><div><strong>${escapeHTML(rewardTitle(reward))}</strong><span>${escapeHTML(rewardReasonText(reward))} • ${escapeHTML(skillName)}</span><small>${escapeHTML(formatDate(reward.date))}</small></div></div>`;
+    }).join('') : emptyState('لا يوجد تحفيز مسجل', 'امنح أول نجمة أو وسام عند ظهور تقدم أو إنجاز واضح.');
 
     const skillRows = state.skills.map(skill => {
       const entry = getLatestEntry(studentId, skill.id, todayISO(), false);
@@ -1189,6 +1311,7 @@
         </div>
         <div class="student-profile-actions">
           <button class="button" data-action="add-entry-for-student" data-student-id="${escapeHTML(student.id)}" type="button">＋ متابعة جديدة</button>
+          <button class="button button-badge" data-action="award-student" data-student-id="${escapeHTML(student.id)}" data-reward-type="badge" type="button">＋ تحفيز</button>
           <button class="button" data-action="print-student" data-student-id="${escapeHTML(student.id)}" type="button">طباعة</button>
           <button class="button" data-action="edit-student" data-student-id="${escapeHTML(student.id)}" type="button">تعديل</button>
           <button class="button" data-action="close-student-card" type="button">إغلاق</button>
@@ -1200,7 +1323,14 @@
         <div class="profile-stat"><strong>${toArabicDigits(average)}</strong><span>متوسط التقدم</span></div>
         <div class="profile-stat"><strong>${toArabicDigits(mastered)}</strong><span>إتقان فأعلى</span></div>
         <div class="profile-stat"><strong>${toArabicDigits(summary?.supportCount || 0)}</strong><span>أولوية متابعة</span></div>
+        <div class="profile-stat reward-profile-stat"><strong>⭐ ${toArabicDigits(motivation.stars)}</strong><span>رصيد النجوم</span></div>
+        <div class="profile-stat reward-profile-stat"><strong>🏅 ${toArabicDigits(motivation.badges)}</strong><span>الأوسمة</span></div>
       </div>
+
+      <section class="panel student-motivation-panel">
+        <div class="panel-header wrap-header"><div><h3>رصيد التحفيز</h3><p>النجوم والأوسمة مرتبطة بأسباب تربوية ومهارات محددة.</p></div><div class="inline-actions"><button class="button button-star" data-action="award-student" data-student-id="${escapeHTML(student.id)}" data-reward-type="star" type="button">＋ ⭐ نجمة</button><button class="button button-badge" data-action="award-student" data-student-id="${escapeHTML(student.id)}" data-reward-type="badge" type="button">＋ 🏅 وسام</button><button class="button button-ghost" data-action="open-reward-history" data-target-type="student" data-target-id="${escapeHTML(student.id)}" type="button">عرض السجل</button></div></div>
+        <div class="student-reward-list">${motivationHistory}</div>
+      </section>
 
       ${studentNote ? `<section class="panel student-note-panel"><div class="student-note-display-header"><h3>الملاحظة العامة</h3>${studentNoteCategory ? `<span class="note-category-badge">${escapeHTML(studentNoteCategory)}</span>` : ''}</div><p>${escapeHTML(studentNote)}</p></section>` : ''}
 
@@ -1365,6 +1495,8 @@
     }
     state.entries = state.entries.filter(entry => entry.skillId !== skillId);
     state.skills = state.skills.filter(item => item.id !== skillId);
+    state.motivation.rewards.forEach(reward => { if (reward.skillId === skillId) reward.skillName = reward.skillName || skill.name; });
+    state.motivation.suggestions = state.motivation.suggestions.filter(suggestion => suggestion.skillId !== skillId);
     saveState();
     renderAll();
     showToast('تم حذف المهارة.', 'success');
@@ -1394,6 +1526,7 @@
       </label>`).join('');
 
     buildStudentNoteControls();
+    buildMotivationControls();
   }
 
   function refreshChoiceSelections() {
@@ -1564,6 +1697,7 @@
       });
 
       if (!entry) state.entries.push(record);
+      queueMotivationSuggestion(record);
       saveState();
       $('#entryDialog').close();
       renderAll();
@@ -1584,6 +1718,7 @@
     if (!confirm('هل تريد حذف هذه المتابعة ومرفقاتها؟')) return;
     for (const media of entry.media || []) await deleteMedia(media.id);
     state.entries = state.entries.filter(item => item.id !== entryId);
+    state.motivation.suggestions = state.motivation.suggestions.filter(item => item.sourceEntryId !== entryId);
     saveState();
     const openStudentId = entry.studentId;
     renderAll();
@@ -1795,6 +1930,642 @@
     return `<div class="empty-state"><strong>${escapeHTML(title)}</strong><span>${escapeHTML(text)}</span></div>`;
   }
 
+
+  function buildMotivationControls() {
+    const badgeSelect = $('#rewardBadge');
+    if (badgeSelect) {
+      badgeSelect.innerHTML = MOTIVATION_BADGES.map(badge => `<option value="${escapeHTML(badge.id)}">${badge.icon} ${escapeHTML(badge.label)}</option>`).join('');
+    }
+    const reasonSelect = $('#rewardReason');
+    if (reasonSelect) {
+      reasonSelect.innerHTML = MOTIVATION_REASONS.map(reason => `<option value="${escapeHTML(reason.id)}">${escapeHTML(reason.label)}</option>`).join('');
+    }
+    const criterionSelect = $('#rewardGroupCriterion');
+    if (criterionSelect) {
+      criterionSelect.innerHTML = GROUP_CRITERIA.map(criterion => `<option value="${escapeHTML(criterion.id)}">${criterion.icon} ${escapeHTML(criterion.label)}</option>`).join('');
+    }
+  }
+
+  function switchMotivationMode(mode = 'students') {
+    currentMotivationMode = mode === 'groups' ? 'groups' : 'students';
+    renderMotivation();
+  }
+
+  function getMotivationPeriodStart(daysValue) {
+    const days = Number(daysValue);
+    if (!days) return '';
+    const date = new Date(`${todayISO()}T12:00:00`);
+    date.setDate(date.getDate() - Math.max(0, days - 1));
+    return date.toISOString().slice(0, 10);
+  }
+
+  function filterRewards(rewards, { skillId = 'all', period = 'all' } = {}) {
+    const start = getMotivationPeriodStart(period);
+    return rewards.filter(reward => {
+      if (skillId !== 'all' && reward.skillId !== skillId) return false;
+      if (start && String(reward.date || '') < start) return false;
+      return true;
+    });
+  }
+
+  function rewardPoints(reward) {
+    if (Number.isFinite(Number(reward.points))) return Number(reward.points);
+    return REWARD_TYPES[reward.rewardType]?.points || 0;
+  }
+
+  function rewardTypeInfo(reward) {
+    return REWARD_TYPES[reward.rewardType] || REWARD_TYPES.star;
+  }
+
+  function rewardBadgeInfo(reward) {
+    return MOTIVATION_BADGES.find(item => item.id === reward.badgeId) || null;
+  }
+
+  function rewardReasonText(reward) {
+    if (reward.customReason) return reward.customReason;
+    return MOTIVATION_REASONS.find(item => item.id === reward.reasonId)?.label || reward.reasonText || 'تحفيز تربوي';
+  }
+
+  function rewardSkillName(reward) {
+    return state.skills.find(item => item.id === reward.skillId)?.name || reward.skillName || 'مهارة غير محددة (سجل سابق)';
+  }
+
+  function rewardTitle(reward) {
+    if (reward.rewardType === 'badge') {
+      const badge = rewardBadgeInfo(reward);
+      return badge ? `${badge.icon} ${badge.label}` : '🏅 وسام';
+    }
+    const info = rewardTypeInfo(reward);
+    return `${info.icon} ${info.label}`;
+  }
+
+  function getTargetRewards(targetType, targetId) {
+    return state.motivation.rewards
+      .filter(reward => reward.targetType === targetType && reward.targetId === targetId)
+      .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+  }
+
+  function summarizeStudentRewards(studentId, filters = {}) {
+    const all = filterRewards(getTargetRewards('student', studentId), filters);
+    const stars = all.filter(reward => reward.rewardType !== 'badge').reduce((sum, reward) => sum + rewardPoints(reward), 0);
+    const badges = all.filter(reward => reward.rewardType === 'badge').length;
+    return { rewards: all, stars, badges, total: all.length, latest: all[0] || null };
+  }
+
+  function summarizeGroupRewards(groupId) {
+    const rewards = getTargetRewards('group', groupId);
+    const criteria = Object.fromEntries(GROUP_CRITERIA.map(criterion => [criterion.id, 0]));
+    rewards.forEach(reward => {
+      if (criteria[reward.groupCriterionId] !== undefined) criteria[reward.groupCriterionId] += rewardPoints(reward);
+    });
+    return { rewards, criteria, total: Object.values(criteria).reduce((sum, value) => sum + value, 0), latest: rewards[0] || null };
+  }
+
+  function renderMotivation() {
+    if (!$('#view-motivation')) return;
+    $$('.motivation-tab').forEach(button => {
+      const active = button.dataset.mode === currentMotivationMode;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    $('#motivationStudentsMode')?.classList.toggle('active', currentMotivationMode === 'students');
+    $('#motivationGroupsMode')?.classList.toggle('active', currentMotivationMode === 'groups');
+
+    const pending = state.motivation.suggestions.filter(suggestion => suggestion.status !== 'dismissed' && suggestion.status !== 'approved');
+    const navBadge = $('#motivationNavBadge');
+    if (navBadge) {
+      navBadge.hidden = pending.length === 0;
+      navBadge.textContent = toArabicDigits(pending.length);
+    }
+
+    renderMotivationStats(pending);
+    renderMotivationSuggestions(pending);
+    renderGroupCriteriaStrip();
+    if (currentMotivationMode === 'groups') renderMotivationGroups();
+    else renderMotivationStudents();
+  }
+
+  function renderMotivationStats(pending = []) {
+    const container = $('#motivationStats');
+    if (!container) return;
+    const studentRewards = state.motivation.rewards.filter(reward => reward.targetType === 'student');
+    const stars = studentRewards.filter(reward => reward.rewardType !== 'badge').reduce((sum, reward) => sum + rewardPoints(reward), 0);
+    const badges = studentRewards.filter(reward => reward.rewardType === 'badge').length;
+    const weekStart = getMotivationPeriodStart(7);
+    const recognized = new Set(studentRewards.filter(reward => !weekStart || String(reward.date || '') >= weekStart).map(reward => reward.targetId)).size;
+    container.innerHTML = [
+      { icon: '⭐', value: stars, label: 'رصيد النجوم' },
+      { icon: '🏅', value: badges, label: 'الأوسمة الممنوحة' },
+      { icon: '📅', value: recognized, label: 'طلاب حُفزوا خلال ٧ أيام' },
+      { icon: '✨', value: pending.length, label: 'اقتراحات بانتظار الاعتماد' }
+    ].map(item => `<div class="motivation-stat-card"><span>${item.icon}</span><div><strong>${toArabicDigits(item.value)}</strong><small>${escapeHTML(item.label)}</small></div></div>`).join('');
+  }
+
+  function renderMotivationSuggestions(pending = []) {
+    const panel = $('#motivationSuggestionsPanel');
+    const container = $('#motivationSuggestions');
+    if (!panel || !container) return;
+    panel.hidden = pending.length === 0;
+    $('#motivationSuggestionCount').textContent = toArabicDigits(pending.length);
+    if (!pending.length) {
+      container.innerHTML = '';
+      return;
+    }
+    container.innerHTML = pending.slice().sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).map(suggestion => {
+      const student = state.students.find(item => item.id === suggestion.studentId);
+      const skill = state.skills.find(item => item.id === suggestion.skillId);
+      const badge = MOTIVATION_BADGES.find(item => item.id === suggestion.badgeId);
+      const type = REWARD_TYPES[suggestion.rewardType] || REWARD_TYPES.star;
+      const rewardLabel = suggestion.rewardType === 'badge' && badge ? `${badge.icon} ${badge.label}` : `${type.icon} ${type.label}`;
+      return `<article class="motivation-suggestion-card">
+        <div class="suggestion-icon">${suggestion.rewardType === 'badge' ? (badge?.icon || '🏅') : type.icon}</div>
+        <div class="suggestion-copy">
+          <strong>${escapeHTML(student?.name || 'طالب محذوف')} — ${escapeHTML(rewardLabel)}</strong>
+          <span>${escapeHTML(suggestion.reasonText || 'أظهر تقدمًا يستحق التحفيز.')}${skill ? ` • ${escapeHTML(skill.name)}` : ''}</span>
+        </div>
+        <div class="suggestion-actions">
+          <button class="button button-primary button-small" data-action="approve-reward-suggestion" data-suggestion-id="${escapeHTML(suggestion.id)}" type="button">اعتماد</button>
+          <button class="button button-ghost button-small" data-action="dismiss-reward-suggestion" data-suggestion-id="${escapeHTML(suggestion.id)}" type="button">تجاهل</button>
+        </div>
+      </article>`;
+    }).join('');
+  }
+
+  function renderMotivationStudents() {
+    const container = $('#motivationStudentGrid');
+    if (!container) return;
+    const search = normalizeName($('#motivationStudentSearch')?.value || '');
+    const skillId = $('#motivationSkillFilter')?.value || 'all';
+    const period = $('#motivationPeriodFilter')?.value || 'all';
+    const sort = $('#motivationStudentSort')?.value || 'name';
+    const summaries = state.students.map(student => ({ student, ...summarizeStudentRewards(student.id, { skillId, period }) }))
+      .filter(item => !search || normalizeName(item.student.name).includes(search));
+
+    summaries.sort((a, b) => {
+      if (sort === 'stars') return b.stars - a.stars || a.student.name.localeCompare(b.student.name, 'ar');
+      if (sort === 'badges') return b.badges - a.badges || a.student.name.localeCompare(b.student.name, 'ar');
+      if (sort === 'recent') return String(b.latest?.date || '').localeCompare(String(a.latest?.date || '')) || a.student.name.localeCompare(b.student.name, 'ar');
+      return a.student.name.localeCompare(b.student.name, 'ar');
+    });
+
+    const equityStart = getMotivationPeriodStart(14);
+    const recentlyRecognized = new Set(state.motivation.rewards.filter(reward => reward.targetType === 'student' && String(reward.date || '') >= equityStart).map(reward => reward.targetId));
+    const unrecognizedCount = state.students.filter(student => !recentlyRecognized.has(student.id)).length;
+    const equityNote = $('#motivationEquityNote');
+    if (equityNote) equityNote.innerHTML = unrecognizedCount
+      ? `<span>⚖️</span><div><strong>تنبيه للعدالة في التعزيز</strong><small>${toArabicDigits(unrecognizedCount)} طالبًا لم يُسجل له تحفيز خلال آخر ١٤ يومًا.</small></div>`
+      : `<span>✓</span><div><strong>تغطية تحفيزية متوازنة</strong><small>سُجل تحفيز لجميع الطلاب خلال آخر ١٤ يومًا.</small></div>`;
+
+    if (!state.students.length) {
+      container.innerHTML = emptyState('لم يُضف الطلاب', 'أضف قائمة الطلاب من بطاقات الطلاب؛ وستظهر هنا تلقائيًا دون إعادة إدخالها.');
+      return;
+    }
+    if (!summaries.length) {
+      container.innerHTML = emptyState('لا توجد نتائج مطابقة', 'غيّر البحث أو الفترة أو المهارة المختارة.');
+      return;
+    }
+
+    container.innerHTML = summaries.map(item => {
+      const recent = item.rewards.slice(0, 3);
+      return `<article class="motivation-student-card">
+        <div class="motivation-card-top">
+          <div class="student-card-header">
+            <div class="avatar motivation-avatar">${escapeHTML(item.student.name.trim().charAt(0) || 'ط')}</div>
+            <div><strong>${escapeHTML(item.student.name)}</strong><small>${item.student.number ? `الرقم ${escapeHTML(toArabicDigits(item.student.number))}` : 'رصيد تحفيز فردي'}</small></div>
+          </div>
+          <button class="table-action" data-action="open-reward-history" data-target-type="student" data-target-id="${escapeHTML(item.student.id)}" type="button">السجل</button>
+        </div>
+        <div class="reward-balance">
+          <div><span>⭐</span><strong>${toArabicDigits(item.stars)}</strong><small>نجمة</small></div>
+          <div><span>🏅</span><strong>${toArabicDigits(item.badges)}</strong><small>وسام</small></div>
+        </div>
+        <div class="recent-rewards">
+          ${recent.length ? recent.map(reward => `<span class="recent-reward-chip" title="${escapeHTML(rewardReasonText(reward))}">${escapeHTML(rewardTitle(reward))}</span>`).join('') : '<span class="no-reward-yet">لم يُسجل تحفيز بعد</span>'}
+        </div>
+        ${item.latest ? `<p class="last-reward"><strong>الأحدث:</strong> ${escapeHTML(rewardReasonText(item.latest))} • ${escapeHTML(formatDate(item.latest.date))}</p>` : '<p class="last-reward muted">ابدأ بأول تعزيز مرتبط بإنجاز واضح.</p>'}
+        <div class="motivation-card-actions">
+          <button class="button button-star" data-action="award-student" data-student-id="${escapeHTML(item.student.id)}" data-reward-type="star" type="button">＋ ⭐ نجمة</button>
+          <button class="button button-badge" data-action="award-student" data-student-id="${escapeHTML(item.student.id)}" data-reward-type="badge" type="button">＋ 🏅 وسام</button>
+        </div>
+      </article>`;
+    }).join('');
+  }
+
+  function renderGroupCriteriaStrip() {
+    const container = $('#groupCriteriaStrip');
+    if (!container) return;
+    container.innerHTML = GROUP_CRITERIA.map(criterion => `<span>${criterion.icon} ${escapeHTML(criterion.label)}</span>`).join('');
+  }
+
+  function renderMotivationGroups() {
+    const container = $('#motivationGroupGrid');
+    if (!container) return;
+    if (!state.motivation.groups.length) {
+      container.innerHTML = emptyState('لم تُنشأ مجموعات بعد', 'أنشئ مجموعة واختر أعضاءها من قائمة الطلاب الموجودة في السجل.');
+      return;
+    }
+    const groups = state.motivation.groups.map(group => ({ group, ...summarizeGroupRewards(group.id) }))
+      .sort((a, b) => b.total - a.total || a.group.name.localeCompare(b.group.name, 'ar'));
+    container.innerHTML = groups.map(item => {
+      const members = item.group.memberIds.map(id => state.students.find(student => student.id === id)?.name).filter(Boolean);
+      return `<article class="motivation-group-card">
+        <div class="group-card-header">
+          <div><span class="group-icon">👥</span><div><strong>${escapeHTML(item.group.name)}</strong><small>${toArabicDigits(members.length)} أعضاء</small></div></div>
+          <div class="row-actions">
+            <button class="table-action" data-action="open-reward-history" data-target-type="group" data-target-id="${escapeHTML(item.group.id)}" type="button">السجل</button>
+            <button class="table-action" data-action="edit-motivation-group" data-group-id="${escapeHTML(item.group.id)}" type="button">تعديل</button>
+            <button class="table-action danger" data-action="delete-motivation-group" data-group-id="${escapeHTML(item.group.id)}" type="button">حذف</button>
+          </div>
+        </div>
+        <div class="group-members">${members.length ? members.map(name => `<span>${escapeHTML(name)}</span>`).join('') : '<span>دون أعضاء</span>'}</div>
+        <div class="group-total"><span>المجموع</span><strong>${toArabicDigits(item.total)}</strong></div>
+        <div class="group-criteria-grid">
+          ${GROUP_CRITERIA.map(criterion => `<div class="group-criterion-card">
+            <div><span>${criterion.icon}</span><strong>${escapeHTML(criterion.label)}</strong></div>
+            <b>${toArabicDigits(item.criteria[criterion.id] || 0)}</b>
+            <div class="group-point-actions">
+              <button data-action="award-group" data-group-id="${escapeHTML(item.group.id)}" data-criterion-id="${escapeHTML(criterion.id)}" data-reward-type="star" type="button" title="إضافة نقطة">＋١</button>
+              <button data-action="award-group" data-group-id="${escapeHTML(item.group.id)}" data-criterion-id="${escapeHTML(criterion.id)}" data-reward-type="glow_star" type="button" title="إضافة نقطتين">＋٢</button>
+              <button data-action="award-group" data-group-id="${escapeHTML(item.group.id)}" data-criterion-id="${escapeHTML(criterion.id)}" data-reward-type="badge" type="button" title="إضافة ثلاث نقاط">＋٣</button>
+            </div>
+          </div>`).join('')}
+        </div>
+      </article>`;
+    }).join('');
+  }
+
+  function openRewardForHeader() {
+    if (currentMotivationMode === 'groups') {
+      if (!state.motivation.groups.length) {
+        showToast('أنشئ مجموعة أولًا.', 'warning');
+        return;
+      }
+      openRewardDialog({ targetType: 'group', targetId: state.motivation.groups[0].id, allowTargetSelection: true });
+      return;
+    }
+    if (!state.students.length) {
+      showToast('أضف الطلاب أولًا.', 'warning');
+      return;
+    }
+    openRewardDialog({ targetType: 'student', targetId: state.students[0].id, allowTargetSelection: true });
+  }
+
+  function openRewardDialog({ targetType = 'student', targetId = '', rewardType = 'star', badgeId = '', reasonId = '', customReason = '', skillId = '', criterionId = '', suggestionId = '', sourceEntryId = '', allowTargetSelection = false } = {}) {
+    const target = targetType === 'group'
+      ? state.motivation.groups.find(group => group.id === targetId)
+      : state.students.find(student => student.id === targetId);
+    if (!target) {
+      showToast(targetType === 'group' ? 'المجموعة غير موجودة.' : 'الطالب غير موجود.', 'warning');
+      return;
+    }
+
+    buildMotivationControls();
+    renderSkillOptions();
+    $('#rewardTargetType').value = targetType;
+    $('#rewardTargetId').value = targetId;
+    $('#rewardSuggestionId').value = suggestionId;
+    $('#rewardSourceEntryId').value = sourceEntryId;
+    $('#rewardTargetName').textContent = target.name;
+    $('#rewardDate').value = todayISO();
+    $('#rewardType').value = REWARD_TYPES[rewardType] ? rewardType : 'star';
+    $('#rewardBadge').value = MOTIVATION_BADGES.some(item => item.id === badgeId) ? badgeId : (targetType === 'student' ? 'progress' : 'cooperation');
+    $('#rewardReason').value = MOTIVATION_REASONS.some(item => item.id === reasonId) ? reasonId : (targetType === 'student' ? 'progress' : 'cooperation');
+    $('#rewardCustomReason').value = customReason || '';
+    const filteredSkillId = $('#motivationSkillFilter')?.value || '';
+    const resolvedSkillId = state.skills.some(skill => skill.id === skillId)
+      ? skillId
+      : (filteredSkillId !== 'all' && state.skills.some(skill => skill.id === filteredSkillId) ? filteredSkillId : '');
+    $('#rewardSkill').value = resolvedSkillId;
+    $('#rewardGroupCriterion').value = GROUP_CRITERIA.some(item => item.id === criterionId) ? criterionId : 'cooperation';
+    $('#rewardNote').value = '';
+    $('#rewardDialogTitle').textContent = targetType === 'group' ? 'منح نقاط للمجموعة' : 'منح نجمة أو وسام';
+
+    const picker = $('#rewardTargetPicker');
+    if (picker) {
+      picker.hidden = !allowTargetSelection;
+      if (allowTargetSelection) {
+        const targets = targetType === 'group' ? state.motivation.groups : state.students;
+        picker.innerHTML = targets.map(item => `<option value="${escapeHTML(item.id)}">${escapeHTML(item.name)}</option>`).join('');
+        picker.value = targetId;
+      } else {
+        picker.innerHTML = '';
+      }
+    }
+    $('#rewardTargetName').hidden = allowTargetSelection;
+
+    updateRewardDialogFields();
+    openDialog('rewardDialog');
+  }
+
+  function updateRewardTargetFromPicker() {
+    const picker = $('#rewardTargetPicker');
+    if (!picker || picker.hidden) return;
+    const targetType = $('#rewardTargetType').value;
+    const target = targetType === 'group'
+      ? state.motivation.groups.find(group => group.id === picker.value)
+      : state.students.find(student => student.id === picker.value);
+    if (!target) return;
+    $('#rewardTargetId').value = target.id;
+    $('#rewardTargetName').textContent = target.name;
+  }
+
+  function updateRewardDialogFields() {
+    const targetType = $('#rewardTargetType')?.value || 'student';
+    const type = $('#rewardType')?.value || 'star';
+    const reason = $('#rewardReason')?.value || '';
+    if ($('#rewardBadgeWrap')) $('#rewardBadgeWrap').hidden = !(targetType === 'student' && type === 'badge');
+    if ($('#rewardGroupCriterionWrap')) $('#rewardGroupCriterionWrap').hidden = targetType !== 'group';
+    if ($('#rewardCustomReasonWrap')) $('#rewardCustomReasonWrap').hidden = reason !== 'other';
+    const typeSelect = $('#rewardType');
+    if (typeSelect) {
+      const labels = targetType === 'group'
+        ? { star: '⭐ +١ نقطة', glow_star: '🌟 +٢ نقطتين', badge: '🏅 +٣ نقاط' }
+        : { star: '⭐ نجمة', glow_star: '🌟 نجمة تميز', badge: '🏅 وسام' };
+      Array.from(typeSelect.options).forEach(option => { option.textContent = labels[option.value] || option.textContent; });
+    }
+  }
+
+  function saveRewardFromDialog() {
+    updateRewardTargetFromPicker();
+    const targetType = $('#rewardTargetType').value;
+    const targetId = $('#rewardTargetId').value;
+    const rewardType = $('#rewardType').value;
+    const reasonId = $('#rewardReason').value;
+    const customReason = reasonId === 'other' ? $('#rewardCustomReason').value.trim() : '';
+    const skillId = $('#rewardSkill').value;
+    const linkedSkill = state.skills.find(skill => skill.id === skillId);
+    const date = $('#rewardDate').value || todayISO();
+    const targetExists = targetType === 'group'
+      ? state.motivation.groups.some(group => group.id === targetId)
+      : state.students.some(student => student.id === targetId);
+    if (!targetExists) {
+      showToast('اختر مستفيدًا صالحًا.', 'warning');
+      return;
+    }
+    if (!MOTIVATION_REASONS.some(item => item.id === reasonId)) {
+      showToast('اختر سبب التحفيز.', 'warning');
+      $('#rewardReason')?.focus();
+      return;
+    }
+    if (reasonId === 'other' && !customReason) {
+      showToast('اكتب سبب التحفيز الآخر.', 'warning');
+      $('#rewardCustomReason')?.focus();
+      return;
+    }
+    if (!linkedSkill) {
+      showToast('اختر المهارة المرتبطة بالتحفيز.', 'warning');
+      $('#rewardSkill')?.focus();
+      return;
+    }
+    const groupCriterionId = targetType === 'group' ? $('#rewardGroupCriterion').value : '';
+    if (targetType === 'group' && !groupCriterionId) {
+      showToast('اختر معيار المجموعة.', 'warning');
+      return;
+    }
+
+    const record = {
+      id: uid('reward'),
+      targetType,
+      targetId,
+      rewardType,
+      badgeId: targetType === 'student' && rewardType === 'badge' ? $('#rewardBadge').value : '',
+      reasonId,
+      reasonText: MOTIVATION_REASONS.find(item => item.id === reasonId)?.label || '',
+      customReason,
+      skillId,
+      skillName: linkedSkill.name,
+      groupCriterionId,
+      date,
+      note: $('#rewardNote').value.trim(),
+      points: rewardPoints({ rewardType }),
+      sourceEntryId: $('#rewardSourceEntryId').value || '',
+      createdAt: new Date().toISOString()
+    };
+    state.motivation.rewards.push(record);
+
+    const suggestionId = $('#rewardSuggestionId').value;
+    if (suggestionId) {
+      const suggestion = state.motivation.suggestions.find(item => item.id === suggestionId);
+      if (suggestion) suggestion.status = 'approved';
+    }
+
+    saveState();
+    $('#rewardDialog').close();
+    renderAll();
+    celebrateReward(record.rewardType === 'badge' ? '🏅' : rewardTypeInfo(record).icon);
+    showToast(targetType === 'group' ? `تمت إضافة ${toArabicDigits(record.points)} نقاط للمجموعة.` : 'تم منح التحفيز وحفظ سببه.', 'success');
+  }
+
+  function celebrateReward(symbol = '⭐') {
+    const layer = document.createElement('div');
+    layer.className = 'celebration-layer';
+    for (let index = 0; index < 18; index += 1) {
+      const item = document.createElement('span');
+      item.textContent = index % 3 === 0 ? symbol : (index % 2 ? '✨' : '⭐');
+      item.style.setProperty('--x', `${Math.round(Math.random() * 90 + 5)}vw`);
+      item.style.setProperty('--delay', `${(Math.random() * 0.35).toFixed(2)}s`);
+      item.style.setProperty('--rotate', `${Math.round(Math.random() * 360)}deg`);
+      layer.appendChild(item);
+    }
+    document.body.appendChild(layer);
+    setTimeout(() => layer.remove(), 1700);
+  }
+
+  function openMotivationGroupDialog(groupId = '') {
+    if (!state.students.length) {
+      showToast('أضف الطلاب أولًا حتى تتمكن من تكوين المجموعات.', 'warning');
+      return;
+    }
+    const group = state.motivation.groups.find(item => item.id === groupId);
+    $('#motivationGroupEditId').value = group?.id || '';
+    $('#motivationGroupName').value = group?.name || '';
+    $('#motivationGroupDialogTitle').textContent = group ? 'تعديل المجموعة' : 'إنشاء مجموعة';
+    $('#motivationGroupMembers').innerHTML = state.students.map(student => `<label class="group-member-choice">
+      <input type="checkbox" value="${escapeHTML(student.id)}" ${(group?.memberIds || []).includes(student.id) ? 'checked' : ''} />
+      <span class="avatar small-avatar">${escapeHTML(student.name.trim().charAt(0) || 'ط')}</span>
+      <span>${escapeHTML(student.name)}</span>
+    </label>`).join('');
+    openDialog('motivationGroupDialog');
+    setTimeout(() => $('#motivationGroupName')?.focus(), 50);
+  }
+
+  function saveMotivationGroup() {
+    const id = $('#motivationGroupEditId').value;
+    const name = $('#motivationGroupName').value.trim();
+    const memberIds = $$('#motivationGroupMembers input:checked').map(input => input.value);
+    if (!name) {
+      showToast('اكتب اسم المجموعة.', 'warning');
+      return;
+    }
+    if (!memberIds.length) {
+      showToast('اختر عضوًا واحدًا على الأقل.', 'warning');
+      return;
+    }
+    const duplicate = state.motivation.groups.find(group => normalizeName(group.name) === normalizeName(name) && group.id !== id);
+    if (duplicate) {
+      showToast('اسم المجموعة مستخدم بالفعل.', 'warning');
+      return;
+    }
+    if (id) {
+      const group = state.motivation.groups.find(item => item.id === id);
+      if (group) Object.assign(group, { name, memberIds, updatedAt: new Date().toISOString() });
+    } else {
+      state.motivation.groups.push({ id: uid('group'), name, memberIds, createdAt: new Date().toISOString() });
+    }
+    saveState();
+    $('#motivationGroupDialog').close();
+    renderAll();
+    switchMotivationMode('groups');
+    showToast(id ? 'تم تحديث المجموعة.' : 'تم إنشاء المجموعة.', 'success');
+  }
+
+  function deleteMotivationGroup(groupId) {
+    const group = state.motivation.groups.find(item => item.id === groupId);
+    if (!group) return;
+    if (!confirm(`هل تريد حذف مجموعة «${group.name}» وسجل نقاطها؟`)) return;
+    state.motivation.groups = state.motivation.groups.filter(item => item.id !== groupId);
+    state.motivation.rewards = state.motivation.rewards.filter(reward => !(reward.targetType === 'group' && reward.targetId === groupId));
+    saveState();
+    renderAll();
+    showToast('تم حذف المجموعة وسجل نقاطها.', 'success');
+  }
+
+  function openRewardHistory(targetType, targetId) {
+    const target = targetType === 'group'
+      ? state.motivation.groups.find(group => group.id === targetId)
+      : state.students.find(student => student.id === targetId);
+    if (!target) return;
+    const rewards = getTargetRewards(targetType, targetId);
+    const summary = targetType === 'group' ? summarizeGroupRewards(targetId) : summarizeStudentRewards(targetId);
+    const rows = rewards.length ? rewards.map(reward => {
+      const skillName = rewardSkillName(reward);
+      const criterion = GROUP_CRITERIA.find(item => item.id === reward.groupCriterionId);
+      return `<article class="reward-history-item">
+        <div class="reward-history-icon">${reward.rewardType === 'badge' && targetType === 'student' ? (rewardBadgeInfo(reward)?.icon || '🏅') : rewardTypeInfo(reward).icon}</div>
+        <div class="reward-history-copy">
+          <strong>${escapeHTML(targetType === 'group' ? `${criterion?.label || 'نقاط المجموعة'} (+${toArabicDigits(rewardPoints(reward))})` : rewardTitle(reward))}</strong>
+          <span>${escapeHTML(rewardReasonText(reward))} • ${escapeHTML(skillName)}</span>
+          <small>${escapeHTML(formatDate(reward.date))}${reward.note ? ` • ${escapeHTML(reward.note)}` : ''}</small>
+        </div>
+        <button class="table-action danger" data-action="delete-reward" data-reward-id="${escapeHTML(reward.id)}" type="button">حذف</button>
+      </article>`;
+    }).join('') : emptyState('لا يوجد تحفيز مسجل', 'ابدأ بمنح نجمة أو وسام مرتبط بإنجاز واضح.');
+
+    $('#rewardHistoryContent').dataset.targetType = targetType;
+    $('#rewardHistoryContent').dataset.targetId = targetId;
+    $('#rewardHistoryContent').innerHTML = `<div class="dialog-header sticky-dialog-header">
+      <div><span class="eyebrow">السجل الزمني للتحفيز</span><h3>${escapeHTML(target.name)}</h3></div>
+      <button class="icon-button" data-action="close-reward-history" aria-label="إغلاق" type="button">×</button>
+    </div>
+    <div class="reward-history-summary">
+      ${targetType === 'group'
+        ? `<div><strong>${toArabicDigits(summary.total)}</strong><span>إجمالي النقاط</span></div><div><strong>${toArabicDigits(summary.rewards.length)}</strong><span>عمليات التحفيز</span></div>`
+        : `<div><strong>${toArabicDigits(summary.stars)}</strong><span>النجوم</span></div><div><strong>${toArabicDigits(summary.badges)}</strong><span>الأوسمة</span></div>`}
+    </div>
+    <div class="reward-history-list">${rows}</div>`;
+    if (!$('#rewardHistoryDialog').open) $('#rewardHistoryDialog').showModal();
+  }
+
+  function deleteReward(rewardId) {
+    const reward = state.motivation.rewards.find(item => item.id === rewardId);
+    if (!reward) return;
+    if (!confirm('هل تريد حذف هذا التحفيز من السجل؟')) return;
+    state.motivation.rewards = state.motivation.rewards.filter(item => item.id !== rewardId);
+    saveState();
+    renderAll();
+    const content = $('#rewardHistoryContent');
+    if ($('#rewardHistoryDialog')?.open && content?.dataset.targetType && content?.dataset.targetId) {
+      openRewardHistory(content.dataset.targetType, content.dataset.targetId);
+    }
+    showToast('تم حذف التحفيز.', 'success');
+  }
+
+  function approveRewardSuggestion(suggestionId) {
+    const suggestion = state.motivation.suggestions.find(item => item.id === suggestionId && item.status !== 'approved');
+    if (!suggestion) return;
+    openRewardDialog({
+      targetType: 'student',
+      targetId: suggestion.studentId,
+      rewardType: suggestion.rewardType,
+      badgeId: suggestion.badgeId,
+      reasonId: suggestion.reasonId,
+      skillId: suggestion.skillId,
+      suggestionId: suggestion.id,
+      sourceEntryId: suggestion.sourceEntryId
+    });
+  }
+
+  function dismissRewardSuggestion(suggestionId) {
+    const suggestion = state.motivation.suggestions.find(item => item.id === suggestionId);
+    if (!suggestion) return;
+    suggestion.status = 'dismissed';
+    saveState();
+    renderMotivation();
+    showToast('تم تجاهل الاقتراح، ولم يُمنح أي تحفيز.', 'success');
+  }
+
+  function queueMotivationSuggestion(entry) {
+    if (!entry || entry.absent || !entry.studentId || !entry.postLevel) return;
+    if (state.motivation.rewards.some(reward => reward.sourceEntryId === entry.id)) return;
+    const existing = state.motivation.suggestions.find(item => item.sourceEntryId === entry.id && item.status !== 'dismissed');
+    if (existing) return;
+
+    const hasAudio = (entry.media || []).some(media => String(media.type || '').startsWith('audio'));
+    const pre = Number(entry.preLevel) || 0;
+    const post = Number(entry.postLevel) || 0;
+    let suggestion = null;
+    if (hasAudio && post >= 3) {
+      suggestion = { rewardType: 'badge', badgeId: 'explainer', reasonId: 'explanation', reasonText: 'سجل شرحًا صوتيًا واضحًا للحل.' };
+    } else if (pre && post > pre) {
+      suggestion = { rewardType: 'badge', badgeId: 'progress', reasonId: 'progress', reasonText: `انتقل من مستوى ${LEVELS[pre]?.name || pre} إلى ${LEVELS[post]?.name || post}.` };
+    } else if (post === 4) {
+      suggestion = { rewardType: 'badge', badgeId: 'creativity', reasonId: 'creativity', reasonText: 'وصل إلى مستوى الامتداد وأصبح جاهزًا لتطبيق أعمق.' };
+    } else if (post === 3 && Number(entry.independence || 0) === 3) {
+      suggestion = { rewardType: 'badge', badgeId: 'independence', reasonId: 'independence', reasonText: 'أتقن المهارة وأنجز المهمة باستقلالية.' };
+    } else if (post === 3) {
+      suggestion = { rewardType: 'star', badgeId: '', reasonId: 'mastery', reasonText: 'حقق مستوى الإتقان في المهارة.' };
+    }
+    if (!suggestion) return;
+
+    state.motivation.suggestions.push({
+      id: uid('suggestion'),
+      studentId: entry.studentId,
+      skillId: entry.skillId || '',
+      sourceEntryId: entry.id,
+      date: entry.date || todayISO(),
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+      ...suggestion
+    });
+  }
+
+  function exportMotivationCSV() {
+    const headers = ['التاريخ', 'النوع', 'المستفيد', 'نوع التحفيز', 'الوسام', 'النقاط', 'المعيار', 'سبب التحفيز', 'المهارة', 'الملاحظة'];
+    const rows = state.motivation.rewards.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).map(reward => {
+      const target = reward.targetType === 'group'
+        ? state.motivation.groups.find(group => group.id === reward.targetId)
+        : state.students.find(student => student.id === reward.targetId);
+      const badge = rewardBadgeInfo(reward);
+      const criterion = GROUP_CRITERIA.find(item => item.id === reward.groupCriterionId);
+      const skillName = rewardSkillName(reward);
+      return [
+        reward.date || '',
+        reward.targetType === 'group' ? 'مجموعة' : 'طالب',
+        target?.name || '',
+        rewardTypeInfo(reward).label,
+        badge?.label || '',
+        reward.targetType === 'group' ? rewardPoints(reward) : (reward.rewardType === 'badge' ? '' : rewardPoints(reward)),
+        criterion?.label || '',
+        rewardReasonText(reward),
+        skillName,
+        reward.note || ''
+      ];
+    });
+    const csv = '\uFEFF' + [headers, ...rows].map(row => row.map(csvEscape).join(',')).join('\r\n');
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8' }), `سجل-التحفيز-بوصلة-الرياضيات-${todayISO()}.csv`);
+    showToast('تم تصدير سجل التحفيز بصيغة CSV.', 'success');
+  }
+
   function renderReports() {
     const select = $('#reportStudentSelect');
     if (!select) return;
@@ -1852,7 +2623,7 @@
       }
       const backup = {
         app: 'بوصلة الرياضيات',
-        backupVersion: 1,
+        backupVersion: 2,
         exportedAt: new Date().toISOString(),
         state,
         mediaData
@@ -2107,6 +2878,68 @@
       ${printFooter()}`);
   }
 
+
+  function printMotivationStudents() {
+    const summaries = state.students.map(student => ({ student, ...summarizeStudentRewards(student.id) }));
+    const totalStars = summaries.reduce((sum, item) => sum + item.stars, 0);
+    const totalBadges = summaries.reduce((sum, item) => sum + item.badges, 0);
+    const recognized = summaries.filter(item => item.total > 0).length;
+    const rows = summaries.length ? summaries.map((item, index) => {
+      const latest = item.latest;
+      const skillName = latest ? rewardSkillName(latest) : '';
+      return `<tr>
+        <td>${toArabicDigits(index + 1)}</td>
+        <td class="student-print-name">${escapeHTML(item.student.name)}</td>
+        <td>${toArabicDigits(item.stars)}</td>
+        <td>${toArabicDigits(item.badges)}</td>
+        <td>${latest ? escapeHTML(rewardTitle(latest)) : '—'}</td>
+        <td>${latest ? escapeHTML(rewardReasonText(latest)) : '—'}</td>
+        <td>${escapeHTML(skillName || '—')}</td>
+        <td>${latest ? escapeHTML(formatDate(latest.date)) : '—'}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="8">لا يوجد طلاب في السجل.</td></tr>';
+
+    launchPrint(`
+      ${printHeader('تقرير النجوم والأوسمة', 'تعزيز فردي مرتبط بالتقدم والجهد والمهارات')}
+      <div class="print-summary">
+        <div class="print-summary-item"><strong>${toArabicDigits(state.students.length)}</strong><span>الطلاب</span></div>
+        <div class="print-summary-item"><strong>${toArabicDigits(totalStars)}</strong><span>رصيد النجوم</span></div>
+        <div class="print-summary-item"><strong>${toArabicDigits(totalBadges)}</strong><span>الأوسمة</span></div>
+        <div class="print-summary-item"><strong>${toArabicDigits(recognized)}</strong><span>طلاب لديهم تحفيز</span></div>
+      </div>
+      <table class="print-table"><thead><tr><th>م</th><th class="student-print-name">الطالب</th><th>النجوم</th><th>الأوسمة</th><th>آخر تحفيز</th><th>السبب</th><th>المهارة</th><th>التاريخ</th></tr></thead><tbody>${rows}</tbody></table>
+      <section class="print-section"><h2>مبدأ العدالة في التحفيز</h2><div class="print-note-box">يُمنح التحفيز للتقدم والجهد والمثابرة والتفسير والتعاون، ولا يعتمد على مقارنة الطلاب أو سرعة الإنجاز وحدها.</div></section>
+      ${printFooter()}`);
+  }
+
+  function printMotivationGroups() {
+    const groupRows = state.motivation.groups.length ? state.motivation.groups.map((group, index) => {
+      const summary = summarizeGroupRewards(group.id);
+      const members = (group.memberIds || []).map(id => state.students.find(student => student.id === id)?.name).filter(Boolean).join('، ');
+      return `<tr>
+        <td>${toArabicDigits(index + 1)}</td>
+        <td class="student-print-name">${escapeHTML(group.name)}</td>
+        <td class="student-print-name">${escapeHTML(members || '—')}</td>
+        ${GROUP_CRITERIA.map(criterion => `<td>${toArabicDigits(summary.criteria[criterion.id] || 0)}</td>`).join('')}
+        <td><strong>${toArabicDigits(summary.total)}</strong></td>
+      </tr>`;
+    }).join('') : `<tr><td colspan="${GROUP_CRITERIA.length + 4}">لم تُنشأ مجموعات بعد.</td></tr>`;
+
+    const history = state.motivation.rewards.filter(reward => reward.targetType === 'group').slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || ''))).slice(0, 30);
+    const historyRows = history.length ? history.map((reward, index) => {
+      const group = state.motivation.groups.find(item => item.id === reward.targetId);
+      const criterion = GROUP_CRITERIA.find(item => item.id === reward.groupCriterionId);
+      const skillName = rewardSkillName(reward);
+      return `<tr><td>${toArabicDigits(index + 1)}</td><td>${escapeHTML(formatDate(reward.date))}</td><td class="student-print-name">${escapeHTML(group?.name || 'مجموعة محذوفة')}</td><td>${escapeHTML(criterion?.label || '—')}</td><td>${toArabicDigits(rewardPoints(reward))}</td><td>${escapeHTML(skillName)}</td><td>${escapeHTML(reward.note || rewardReasonText(reward))}</td></tr>`;
+    }).join('') : '<tr><td colspan="7">لا يوجد سجل نقاط للمجموعات.</td></tr>';
+
+    launchPrint(`
+      ${printHeader('تقرير تحفيز المجموعات', 'نقاط موثقة وفق معايير تربوية واضحة')}
+      <table class="print-table print-group-table"><thead><tr><th>م</th><th class="student-print-name">المجموعة</th><th class="student-print-name">الأعضاء</th>${GROUP_CRITERIA.map(criterion => `<th>${criterion.icon} ${escapeHTML(criterion.label)}</th>`).join('')}<th>المجموع</th></tr></thead><tbody>${groupRows}</tbody></table>
+      <section class="print-section"><h2>أحدث عمليات التحفيز الجماعي</h2><table class="print-table"><thead><tr><th>م</th><th>التاريخ</th><th class="student-print-name">المجموعة</th><th>المعيار</th><th>النقاط</th><th>المهارة</th><th>التفصيل</th></tr></thead><tbody>${historyRows}</tbody></table></section>
+      ${printFooter()}`);
+  }
+
   function printStudentCard(studentId) {
     const student = state.students.find(item => item.id === studentId);
     if (!student) return;
@@ -2114,6 +2947,11 @@
     const entries = state.entries.filter(entry => entry.studentId === studentId).sort(sortEntriesDescending).slice(0, 12);
     const studentNote = getStudentNoteText(student);
     const studentNoteCategory = getStudentNoteCategoryLabel(student);
+    const motivation = summarizeStudentRewards(studentId);
+    const rewardRows = motivation.rewards.slice(0, 12).map((reward, index) => {
+      const skillName = rewardSkillName(reward);
+      return `<tr><td>${toArabicDigits(index + 1)}</td><td>${escapeHTML(formatDate(reward.date))}</td><td>${escapeHTML(rewardTitle(reward))}</td><td>${escapeHTML(rewardReasonText(reward))}</td><td>${escapeHTML(skillName)}</td></tr>`;
+    }).join('') || '<tr><td colspan="5">لا يوجد تحفيز مسجل بعد.</td></tr>';
     const skillRows = state.skills.map(skill => {
       const entry = getLatestEntry(student.id, skill.id, todayISO(), false);
       const level = entry ? Number(entry.postLevel) : 0;
@@ -2132,8 +2970,11 @@
         <div class="print-summary-item"><strong>${toArabicDigits(summary?.average ? summary.average.toFixed(1) : '—')}</strong><span>متوسط التقدم</span></div>
         <div class="print-summary-item"><strong>${toArabicDigits(summary?.supportCount || 0)}</strong><span>مهارة تحتاج دعمًا</span></div>
         <div class="print-summary-item"><strong>${toArabicDigits(summary?.enrichmentCount || 0)}</strong><span>فرصة إثراء</span></div>
+        <div class="print-summary-item"><strong>⭐ ${toArabicDigits(motivation.stars)}</strong><span>رصيد النجوم</span></div>
+        <div class="print-summary-item"><strong>🏅 ${toArabicDigits(motivation.badges)}</strong><span>الأوسمة</span></div>
       </div>
       ${studentNote ? `<section class="print-section"><h2>الملاحظة العامة${studentNoteCategory ? ` - ${escapeHTML(studentNoteCategory)}` : ''}</h2><div class="print-note-box">${escapeHTML(studentNote)}</div></section>` : ''}
+      <section class="print-section"><h2>سجل النجوم والأوسمة</h2><table class="print-table"><thead><tr><th>م</th><th>التاريخ</th><th>التحفيز</th><th>السبب</th><th>المهارة</th></tr></thead><tbody>${rewardRows}</tbody></table></section>
       <section class="print-section"><h2>ملخص المهارات</h2><table class="print-table"><thead><tr><th class="student-print-name">المهارة</th><th>المستوى</th><th>آخر رصد</th><th>الخطوة التالية</th></tr></thead><tbody>${skillRows}</tbody></table></section>
       <section class="print-section"><h2>أحدث المتابعات</h2><table class="print-table"><thead><tr><th>م</th><th>التاريخ</th><th>المهارة</th><th>المستوى</th><th>الخطأ</th><th>الملاحظة</th></tr></thead><tbody>${historyRows}</tbody></table></section>
       ${printFooter()}`);

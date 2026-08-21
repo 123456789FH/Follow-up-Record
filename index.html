@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f766e" />
-  <meta name="description" content="سجل إلكتروني تفاعلي لمتابعة الطلاب في مادة الرياضيات يوميًا مع مراعاة الفروق الفردية وطرائق التعلم." />
+  <meta name="description" content="سجل إلكتروني تفاعلي لمتابعة تعلم الرياضيات يوميًا، مع لوحة تحفيز وأوسمة مرتبطة بالمهارات ومراعاة الفروق الفردية." />
   <title>بوصلة الرياضيات | سجل المتابعة اليومية</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
@@ -30,6 +30,10 @@
         </button>
         <button class="nav-item" data-view="daily" type="button">
           <span class="nav-icon">✓</span><span>الرصد اليومي</span>
+        </button>
+        <button class="nav-item" data-view="motivation" type="button">
+          <span class="nav-icon">⭐</span><span>لوحة التحفيز والأوسمة</span>
+          <span class="nav-count-badge" id="motivationNavBadge" hidden>٠</span>
         </button>
         <button class="nav-item" data-view="students" type="button">
           <span class="nav-icon">◉</span><span>بطاقات الطلاب</span>
@@ -225,6 +229,108 @@
           </section>
         </section>
 
+        <section class="app-view" id="view-motivation" data-view-section="motivation">
+          <div class="page-heading motivation-heading">
+            <div>
+              <span class="eyebrow">تعزيز مرتبط بالتعلم والتقدم</span>
+              <h2>لوحة التحفيز والأوسمة</h2>
+              <p>تُستورد أسماء الطلاب تلقائيًا من السجل، ويرتبط كل تحفيز بسبب تربوي ومهارة محددة.</p>
+            </div>
+            <div class="heading-actions">
+              <button class="button button-secondary" data-action="print-motivation-students" type="button">طباعة تحفيز الطلاب</button>
+              <button class="button button-primary" data-action="award-from-header" type="button">＋ منح تحفيز</button>
+            </div>
+          </div>
+
+          <div class="motivation-mode-tabs" role="tablist" aria-label="اختيار نوع لوحة التحفيز">
+            <button class="motivation-tab active" data-action="switch-motivation-mode" data-mode="students" type="button" role="tab" aria-selected="true">
+              <span>⭐</span><strong>تحفيز الطلاب</strong><small>نجوم وأوسمة فردية</small>
+            </button>
+            <button class="motivation-tab" data-action="switch-motivation-mode" data-mode="groups" type="button" role="tab" aria-selected="false">
+              <span>👥</span><strong>تحفيز المجموعات</strong><small>نقاط وفق معايير تربوية</small>
+            </button>
+          </div>
+
+          <div class="motivation-stats-grid" id="motivationStats"></div>
+
+          <section class="panel motivation-suggestions-panel" id="motivationSuggestionsPanel" hidden>
+            <div class="panel-header wrap-header">
+              <div>
+                <h3>اقتراحات تحفيز من الرصد اليومي</h3>
+                <p>يقترح التطبيق مكافأة عند ظهور تقدم واضح، ولا تُمنح إلا بعد اعتماد المعلم.</p>
+              </div>
+              <span class="suggestion-count" id="motivationSuggestionCount">٠</span>
+            </div>
+            <div id="motivationSuggestions" class="motivation-suggestion-list"></div>
+          </section>
+
+          <div id="motivationStudentsMode" class="motivation-mode-content active">
+            <section class="panel motivation-toolbar-panel">
+              <div class="motivation-toolbar">
+                <label class="search-field motivation-search">
+                  <span>البحث عن طالب</span>
+                  <input id="motivationStudentSearch" type="search" placeholder="ابحث بالاسم…" />
+                </label>
+                <label>
+                  <span>المهارة</span>
+                  <select id="motivationSkillFilter"><option value="all">جميع المهارات</option></select>
+                </label>
+                <label>
+                  <span>الفترة</span>
+                  <select id="motivationPeriodFilter">
+                    <option value="all">جميع الفترات</option>
+                    <option value="7">آخر ٧ أيام</option>
+                    <option value="14">آخر ١٤ يومًا</option>
+                    <option value="30">آخر ٣٠ يومًا</option>
+                  </select>
+                </label>
+                <label>
+                  <span>الترتيب</span>
+                  <select id="motivationStudentSort">
+                    <option value="name">الاسم</option>
+                    <option value="recent">الأحدث تحفيزًا</option>
+                    <option value="stars">عدد النجوم</option>
+                    <option value="badges">عدد الأوسمة</option>
+                  </select>
+                </label>
+              </div>
+              <div class="equity-note" id="motivationEquityNote"></div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-header wrap-header">
+                <div>
+                  <h3>رصيد التحفيز الفردي</h3>
+                  <p>الإتقان والتقدم والجهد والتفسير والتعاون مسارات مستقلة للتحفيز.</p>
+                </div>
+                <div class="motivation-legend">
+                  <span>⭐ نجمة = ١</span><span>🌟 نجمة تميز = ٢</span><span>🏅 وسام نوعي</span>
+                </div>
+              </div>
+              <div id="motivationStudentGrid" class="motivation-student-grid"></div>
+            </section>
+          </div>
+
+          <div id="motivationGroupsMode" class="motivation-mode-content">
+            <section class="panel motivation-toolbar-panel">
+              <div class="panel-header wrap-header">
+                <div>
+                  <h3>مجموعات التعلم المرنة</h3>
+                  <p>أنشئ مجموعات من الطلاب الموجودين في السجل، ثم امنح نقاطًا لمعايير تربوية واضحة.</p>
+                </div>
+                <div class="inline-actions">
+                  <button class="button button-secondary" data-action="print-motivation-groups" type="button">طباعة المجموعات</button>
+                  <button class="button button-primary" data-action="add-motivation-group" type="button">＋ إنشاء مجموعة</button>
+                </div>
+              </div>
+              <div class="group-criteria-strip" id="groupCriteriaStrip"></div>
+            </section>
+            <section class="panel">
+              <div id="motivationGroupGrid" class="motivation-group-grid"></div>
+            </section>
+          </div>
+        </section>
+
         <section class="app-view" id="view-students" data-view-section="students">
           <div class="page-heading">
             <div>
@@ -307,6 +413,16 @@
               <strong>تقرير الإثراء</strong>
               <small>الطلاب الجاهزون ومهام الامتداد</small>
             </button>
+            <button class="report-card" data-action="print-motivation-students" type="button">
+              <span class="report-icon">⭐</span>
+              <strong>تقرير النجوم والأوسمة</strong>
+              <small>رصيد التحفيز وأسبابه والمهارات المرتبطة</small>
+            </button>
+            <button class="report-card" data-action="print-motivation-groups" type="button">
+              <span class="report-icon">👥</span>
+              <strong>تقرير تحفيز المجموعات</strong>
+              <small>النقاط بحسب المعايير التربوية</small>
+            </button>
           </div>
 
           <section class="panel">
@@ -331,6 +447,7 @@
             </div>
             <div class="export-actions">
               <button class="button button-secondary" data-action="export-csv" type="button">تصدير CSV</button>
+              <button class="button button-secondary" data-action="export-motivation-csv" type="button">تصدير التحفيز CSV</button>
               <button class="button button-secondary" data-action="export-backup" type="button">نسخة احتياطية كاملة</button>
               <button class="button button-ghost" data-action="import-backup" type="button">استيراد نسخة</button>
               <input id="backupFileInput" type="file" accept="application/json,.json" hidden />
@@ -656,6 +773,101 @@
         <button class="button button-primary" id="saveEntryButton" value="default" type="button">حفظ المتابعة</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="rewardDialog" class="modal-dialog reward-dialog">
+    <form method="dialog" id="rewardForm" class="dialog-card dialog-card-wide">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow">تحفيز موثق</span>
+          <h3 id="rewardDialogTitle">منح تحفيز</h3>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="إغلاق" type="submit">×</button>
+      </div>
+      <input id="rewardTargetType" type="hidden" />
+      <input id="rewardTargetId" type="hidden" />
+      <input id="rewardSuggestionId" type="hidden" />
+      <input id="rewardSourceEntryId" type="hidden" />
+      <div class="reward-target-banner">
+        <span>المستفيد</span>
+        <strong id="rewardTargetName">—</strong>
+        <select id="rewardTargetPicker" hidden aria-label="اختيار المستفيد"></select>
+      </div>
+      <div class="form-grid three-columns">
+        <label>
+          <span>نوع التحفيز</span>
+          <select id="rewardType">
+            <option value="star">⭐ نجمة</option>
+            <option value="glow_star">🌟 نجمة تميز</option>
+            <option value="badge">🏅 وسام</option>
+          </select>
+        </label>
+        <label id="rewardBadgeWrap" hidden>
+          <span>نوع الوسام</span>
+          <select id="rewardBadge"></select>
+        </label>
+        <label>
+          <span>التاريخ</span>
+          <input id="rewardDate" type="date" required />
+        </label>
+      </div>
+      <div class="form-grid two-columns">
+        <label>
+          <span>سبب التحفيز</span>
+          <select id="rewardReason"></select>
+        </label>
+        <label>
+          <span>المهارة المرتبطة</span>
+          <select id="rewardSkill" required><option value="">اختر المهارة</option></select>
+        </label>
+      </div>
+      <label id="rewardCustomReasonWrap" hidden>
+        <span>سبب آخر</span>
+        <input id="rewardCustomReason" type="text" placeholder="اكتب سبب التحفيز" />
+      </label>
+      <label id="rewardGroupCriterionWrap" hidden>
+        <span>معيار المجموعة</span>
+        <select id="rewardGroupCriterion"></select>
+      </label>
+      <label>
+        <span>ملاحظة مختصرة</span>
+        <textarea id="rewardNote" rows="3" placeholder="اختياري: وصف مختصر للإنجاز أو الموقف"></textarea>
+      </label>
+      <p class="helper-text">لا يُحفظ التحفيز دون سبب تربوي ومهارة محددة. ويظهر السبب والمهارة والتاريخ داخل بطاقة الطالب أو سجل المجموعة.</p>
+      <div class="dialog-actions">
+        <button class="button button-ghost" value="cancel" type="submit">إلغاء</button>
+        <button class="button button-primary" id="saveRewardButton" value="default" type="button">منح التحفيز</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="motivationGroupDialog" class="modal-dialog">
+    <form method="dialog" id="motivationGroupForm" class="dialog-card dialog-card-wide">
+      <div class="dialog-header">
+        <div>
+          <span class="eyebrow">مجموعة تعلم</span>
+          <h3 id="motivationGroupDialogTitle">إنشاء مجموعة</h3>
+        </div>
+        <button class="icon-button" value="cancel" aria-label="إغلاق" type="submit">×</button>
+      </div>
+      <input id="motivationGroupEditId" type="hidden" />
+      <label>
+        <span>اسم المجموعة</span>
+        <input id="motivationGroupName" type="text" placeholder="مثال: مجموعة المفكرين" required />
+      </label>
+      <fieldset class="choice-fieldset">
+        <legend>أعضاء المجموعة</legend>
+        <div id="motivationGroupMembers" class="group-member-choices"></div>
+      </fieldset>
+      <div class="dialog-actions">
+        <button class="button button-ghost" value="cancel" type="submit">إلغاء</button>
+        <button class="button button-primary" id="saveMotivationGroupButton" value="default" type="button">حفظ المجموعة</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="rewardHistoryDialog" class="modal-dialog reward-history-dialog">
+    <div class="dialog-card dialog-card-xl" id="rewardHistoryContent"></div>
   </dialog>
 
   <dialog id="studentCardDialog" class="modal-dialog student-card-dialog">
