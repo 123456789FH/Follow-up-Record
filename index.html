@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f766e" />
-  <meta name="description" content="سجل إلكتروني تفاعلي لمتابعة تعلم الرياضيات يوميًا، مع صور رمزية آمنة، ولوحة تحفيز وأوسمة مرتبطة بالمهارات ومراعاة الفروق الفردية." />
+  <meta name="description" content="منظومة متابعة يومية ذكية لتعلم الرياضيات، تتضمن لوحة مؤشرات تفاعلية وتحليل المهارات والأخطاء والدعم والإثراء والتحفيز والشواهد والصور الرمزية الآمنة." />
   <title>بوصلة الرياضيات | سجل المتابعة اليومية</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
@@ -26,6 +26,9 @@
 
       <nav class="side-nav">
         <button class="nav-item active" data-view="dashboard" type="button">
+          <span class="nav-icon">📊</span><span>لوحة المؤشرات</span>
+        </button>
+        <button class="nav-item" data-view="classboard" type="button">
           <span class="nav-icon">▦</span><span>لوحة الفصل</span>
         </button>
         <button class="nav-item" data-view="daily" type="button">
@@ -75,22 +78,54 @@
 
       <main class="main-content" id="mainContent">
         <section class="app-view active" id="view-dashboard" data-view-section="dashboard">
-          <div class="page-heading hero-heading">
+          <div class="page-heading dashboard-hero-heading">
             <div>
-              <span class="eyebrow">متابعة ذكية • قرارات تعليمية أوضح</span>
-              <h2>لوحة ألوان الفصل</h2>
-              <p>شاهد مستوى كل طالب في كل مهارة، وحدد مجموعات الدعم والإثراء في ثوانٍ.</p>
+              <span class="eyebrow">رؤية أوضح لتقدم الطلاب • قرارات تعليمية أسرع وأدق</span>
+              <h2>لوحة المؤشرات الذكية</h2>
+              <p>مركز قيادة يجمع الرصد والتحليل والدعم والإثراء والتحفيز والشواهد في شاشة واحدة.</p>
             </div>
             <div class="heading-actions">
-              <button class="button button-secondary" data-action="print-dashboard" type="button">طباعة اللوحة</button>
-              <button class="button button-primary" data-view="daily" type="button">ابدأ الرصد اليومي</button>
+              <button class="button button-secondary" data-action="print-dashboard" type="button">🖨️ طباعة لوحة المؤشرات</button>
+              <button class="button button-primary" data-view="daily" type="button">＋ رصد جديد</button>
             </div>
           </div>
+
+          <section class="panel dashboard-filter-panel">
+            <div class="dashboard-filter-row">
+              <div class="dashboard-filter-copy">
+                <strong>فلترة لوحة المؤشرات</strong>
+                <span>غيّر الفترة أو المهارة لتتحدث جميع المؤشرات مباشرة.</span>
+              </div>
+              <div class="dashboard-filter-controls">
+                <label>
+                  <span>الفترة الزمنية</span>
+                  <select id="dashboardPeriodFilter">
+                    <option value="today">اليوم</option>
+                    <option value="7" selected>آخر ٧ أيام</option>
+                    <option value="14">آخر ١٤ يومًا</option>
+                    <option value="30">آخر ٣٠ يومًا</option>
+                    <option value="all">جميع البيانات</option>
+                  </select>
+                </label>
+                <label>
+                  <span>المهارة</span>
+                  <select id="dashboardInsightSkillFilter">
+                    <option value="all">جميع المهارات</option>
+                  </select>
+                </label>
+                <div class="dashboard-class-chip" id="dashboardClassChip">
+                  <small>الفصل الحالي</small>
+                  <strong>غير محدد</strong>
+                </div>
+                <button class="icon-button dashboard-refresh" data-action="refresh-dashboard" type="button" title="تحديث المؤشرات" aria-label="تحديث المؤشرات">↻</button>
+              </div>
+            </div>
+          </section>
 
           <div class="setup-banner" id="setupBanner" hidden>
             <div>
               <strong>لنبدأ تجهيز السجل</strong>
-              <p>أضف أسماء الطلاب، ثم اختر المهارة وابدأ أول رصد.</p>
+              <p>أضف أسماء الطلاب، ثم اختر المهارة وابدأ أول رصد لتظهر المؤشرات تلقائيًا.</p>
             </div>
             <div class="setup-actions">
               <button class="button button-primary" data-action="bulk-add-students" type="button">إضافة قائمة الطلاب</button>
@@ -98,7 +133,145 @@
             </div>
           </div>
 
-          <div class="stats-grid" id="dashboardStats"></div>
+          <div class="dashboard-kpi-grid" id="dashboardInsightStats"></div>
+
+          <section class="dashboard-pulse-card" id="dashboardPulse"></section>
+          <section class="dashboard-smart-alert" id="dashboardSmartAlert"></section>
+
+          <div class="dashboard-insight-grid">
+            <section class="panel insight-panel level-insight-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">لقطة المستوى الحالي</span>
+                  <h3>توزيع مستويات الطلاب</h3>
+                  <p>بحسب أحدث رصد ضمن الفترة والمهارة المحددتين.</p>
+                </div>
+                <button class="mini-link" data-view="classboard" type="button">فتح لوحة الفصل ←</button>
+              </div>
+              <div class="level-donut-layout">
+                <div id="dashboardLevelDonut" class="level-donut-wrap"></div>
+                <div id="dashboardLevelLegend" class="level-insight-legend"></div>
+              </div>
+            </section>
+
+            <section class="panel insight-panel skills-insight-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">قراءة المهارات</span>
+                  <h3>إتقان المهارات</h3>
+                  <p>نسبة الطلاب في مستوى أتقن أو أمتد لكل مهارة.</p>
+                </div>
+              </div>
+              <div id="dashboardSkillsBars" class="skills-progress-list"></div>
+            </section>
+
+            <section class="panel insight-panel trend-insight-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">اتجاه الأداء</span>
+                  <h3>التقدم عبر الزمن</h3>
+                  <p>تطور نسبة الإتقان وفق الرصد المسجل.</p>
+                </div>
+                <span class="trend-summary-chip" id="dashboardTrendSummary">—</span>
+              </div>
+              <div id="dashboardTrendChart" class="trend-chart-wrap"></div>
+            </section>
+
+            <section class="panel insight-panel errors-insight-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">تشخيص التعثر</span>
+                  <h3>بصمة الخطأ الرياضي</h3>
+                  <p>أكثر مواضع التعثر ظهورًا في الفترة المحددة.</p>
+                </div>
+              </div>
+              <div id="dashboardErrorBars" class="error-insight-list"></div>
+            </section>
+
+            <section class="panel insight-panel support-enrichment-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">قرار تعليمي مباشر</span>
+                  <h3>الدعم والإثراء</h3>
+                  <p>أولوية المتابعة والامتداد بحسب أحدث مستوى.</p>
+                </div>
+              </div>
+              <div class="support-enrichment-columns">
+                <div class="decision-column support-column">
+                  <div class="decision-column-title"><span>🌱</span><div><strong>دعم قريب</strong><small>ابدأ بمن يحتاج تدخلًا أولًا</small></div></div>
+                  <div id="dashboardSupportList" class="dashboard-person-list"></div>
+                </div>
+                <div class="decision-column enrichment-column">
+                  <div class="decision-column-title"><span>💎</span><div><strong>فرص إثراء</strong><small>طلاب جاهزون لتحدٍ أعمق</small></div></div>
+                  <div id="dashboardEnrichmentList" class="dashboard-person-list"></div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel insight-panel motivation-insight-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">تعزيز عادل ومرتبط بالتعلم</span>
+                  <h3>النجوم والأوسمة</h3>
+                  <p>رصيد التحفيز وأحدث المكافآت والتنبيه إلى عدالة التعزيز.</p>
+                </div>
+                <button class="mini-link" data-view="motivation" type="button">لوحة التحفيز ←</button>
+              </div>
+              <div id="dashboardMotivationSummary" class="motivation-mini-stats"></div>
+              <div id="dashboardEquityAlert" class="equity-insight"></div>
+              <div id="dashboardRecentRewards" class="recent-reward-list"></div>
+            </section>
+
+            <section class="panel insight-panel groups-insight-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">تعلم تعاوني</span>
+                  <h3>تحفيز المجموعات</h3>
+                  <p>أعلى المجموعات نقاطًا وأبرز معاييرها.</p>
+                </div>
+                <button class="mini-link" data-action="dashboard-open-groups" type="button">إدارة المجموعات ←</button>
+              </div>
+              <div id="dashboardGroupsSummary" class="dashboard-groups-list"></div>
+            </section>
+
+            <section class="panel insight-panel activity-insight-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">حركة السجل</span>
+                  <h3>آخر النشاطات</h3>
+                  <p>آخر رصد وتحفيز تمت إضافتهما داخل التطبيق.</p>
+                </div>
+              </div>
+              <div id="dashboardRecentActivity" class="activity-timeline"></div>
+            </section>
+
+            <section class="panel insight-panel evidence-insight-panel">
+              <div class="panel-header">
+                <div>
+                  <span class="panel-kicker">شواهد تعلم موثقة</span>
+                  <h3>الصور والتسجيلات</h3>
+                  <p>ملخص الشواهد المرفقة بسجلات الطلاب.</p>
+                </div>
+              </div>
+              <div id="dashboardEvidenceSummary" class="evidence-summary-grid"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="app-view" id="view-classboard" data-view-section="classboard">
+          <div class="page-heading hero-heading">
+            <div>
+              <span class="eyebrow">خريطة تفصيلية • كل طالب وكل مهارة</span>
+              <h2>لوحة ألوان الفصل</h2>
+              <p>شاهد مستوى كل طالب في كل مهارة، وحدد مجموعات الدعم والإثراء في ثوانٍ.</p>
+            </div>
+            <div class="heading-actions">
+              <button class="button button-secondary" data-action="print-classboard" type="button">طباعة لوحة الفصل</button>
+              <button class="button button-primary" data-view="daily" type="button">ابدأ الرصد اليومي</button>
+            </div>
+          </div>
+
+          <div class="stats-grid" id="classboardStats"></div>
 
           <div class="dashboard-grid">
             <section class="panel panel-wide">
@@ -110,13 +283,13 @@
                 <div class="inline-filters">
                   <label>
                     <span>عرض المهارات</span>
-                    <select id="dashboardSkillFilter">
+                    <select id="classboardSkillFilter">
                       <option value="all">جميع المهارات</option>
                     </select>
                   </label>
                   <label>
                     <span>حتى تاريخ</span>
-                    <input id="dashboardDateFilter" type="date" />
+                    <input id="classboardDateFilter" type="date" />
                   </label>
                 </div>
               </div>
@@ -171,6 +344,7 @@
             </section>
           </div>
         </section>
+
 
         <section class="app-view" id="view-daily" data-view-section="daily">
           <div class="page-heading">
@@ -394,6 +568,11 @@
 
           <div class="report-grid">
             <button class="report-card" data-action="print-dashboard" type="button">
+              <span class="report-icon">📊</span>
+              <strong>لوحة المؤشرات الذكية</strong>
+              <small>ملخص تنفيذي للتقدم والدعم والتحفيز</small>
+            </button>
+            <button class="report-card" data-action="print-classboard" type="button">
               <span class="report-icon">▦</span>
               <strong>لوحة ألوان الفصل</strong>
               <small>خريطة كاملة للطلاب والمهارات</small>

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'math-compass-v4.0.0';
+const CACHE_NAME = 'math-compass-v5.0.0';
 const APP_SHELL = [
   './',
   './index.html',

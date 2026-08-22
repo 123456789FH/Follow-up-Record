@@ -189,7 +189,7 @@
   ];
 
   const DEFAULT_STATE = {
-    version: 4,
+    version: 5,
     settings: {
       teacher: '',
       school: '',
@@ -398,7 +398,7 @@
       reward.points = Number.isFinite(Number(reward.points)) ? Number(reward.points) : (REWARD_TYPES[reward.rewardType]?.points || 0);
     });
     state.motivation.suggestions = state.motivation.suggestions.filter(suggestion => state.students.some(student => student.id === suggestion.studentId));
-    state.version = 4;
+    state.version = 5;
     saveState();
   }
 
@@ -441,7 +441,7 @@
   function setDefaultDates() {
     const today = todayISO();
     const dailyDate = $('#dailyDate');
-    const dashboardDate = $('#dashboardDateFilter');
+    const dashboardDate = $('#classboardDateFilter');
     const entryDate = $('#entryDate');
     if (dailyDate && !dailyDate.value) dailyDate.value = today;
     if (dashboardDate && !dashboardDate.value) dashboardDate.value = today;
@@ -521,8 +521,10 @@
     });
 
     $('#studentSearch')?.addEventListener('input', renderStudents);
-    $('#dashboardSkillFilter')?.addEventListener('change', renderDashboard);
-    $('#dashboardDateFilter')?.addEventListener('change', renderDashboard);
+    $('#dashboardPeriodFilter')?.addEventListener('change', renderDashboard);
+    $('#dashboardInsightSkillFilter')?.addEventListener('change', renderDashboard);
+    $('#classboardSkillFilter')?.addEventListener('change', renderClassboard);
+    $('#classboardDateFilter')?.addEventListener('change', renderClassboard);
     $('#dailyDate')?.addEventListener('change', renderDaily);
     $('#dailySkill')?.addEventListener('change', renderDaily);
     $('#dailyAssessmentTool')?.addEventListener('change', renderDaily);
@@ -588,7 +590,7 @@
       case 'open-entry-cell': openEntryDialog({
         studentId: actionButton.dataset.studentId,
         skillId: actionButton.dataset.skillId,
-        date: $('#dashboardDateFilter')?.value || todayISO()
+        date: $('#classboardDateFilter')?.value || todayISO()
       }); break;
       case 'quick-details': openQuickDetails(actionButton.dataset.studentId); break;
       case 'switch-motivation-mode': switchMotivationMode(actionButton.dataset.mode); break;
@@ -604,6 +606,15 @@
       case 'approve-reward-suggestion': approveRewardSuggestion(actionButton.dataset.suggestionId); break;
       case 'dismiss-reward-suggestion': dismissRewardSuggestion(actionButton.dataset.suggestionId); break;
       case 'print-dashboard': printDashboard(); break;
+      case 'print-classboard': printClassboard(); break;
+      case 'refresh-dashboard': renderDashboard(); showToast('تم تحديث لوحة المؤشرات.', 'success'); break;
+      case 'dashboard-open-skill': {
+        const filter = $('#classboardSkillFilter');
+        if (filter && state.skills.some(skill => skill.id === actionButton.dataset.skillId)) filter.value = actionButton.dataset.skillId;
+        navigate('classboard');
+        break;
+      }
+      case 'dashboard-open-groups': currentMotivationMode = 'groups'; navigate('motivation'); break;
       case 'print-daily-sheet': printDailySheet(); break;
       case 'print-support-report': printSupportReport(); break;
       case 'print-enrichment-report': printEnrichmentReport(); break;
@@ -662,6 +673,7 @@
     $('#sidebar')?.classList.remove('open');
 
     if (view === 'dashboard') renderDashboard();
+    if (view === 'classboard') renderClassboard();
     if (view === 'daily') renderDaily();
     if (view === 'motivation') renderMotivation();
     if (view === 'students') renderStudents();
@@ -676,6 +688,7 @@
     renderContext();
     renderSkillOptions();
     renderDashboard();
+    renderClassboard();
     renderDaily();
     renderMotivation();
     renderStudents();
@@ -708,11 +721,18 @@
       if (state.skills.some(skill => skill.id === previousEntry)) entrySkill.value = previousEntry;
     }
 
-    const dashboardFilter = $('#dashboardSkillFilter');
-    const previousFilter = dashboardFilter?.value || 'all';
-    if (dashboardFilter) {
-      dashboardFilter.innerHTML = '<option value="all">جميع المهارات</option>' + state.skills.map(skill => `<option value="${escapeHTML(skill.id)}">${escapeHTML(skill.name)}</option>`).join('');
-      dashboardFilter.value = state.skills.some(skill => skill.id === previousFilter) ? previousFilter : 'all';
+    const dashboardInsightFilter = $('#dashboardInsightSkillFilter');
+    const previousInsightFilter = dashboardInsightFilter?.value || 'all';
+    if (dashboardInsightFilter) {
+      dashboardInsightFilter.innerHTML = '<option value="all">جميع المهارات</option>' + state.skills.map(skill => `<option value="${escapeHTML(skill.id)}">${escapeHTML(skill.name)}</option>`).join('');
+      dashboardInsightFilter.value = state.skills.some(skill => skill.id === previousInsightFilter) ? previousInsightFilter : 'all';
+    }
+
+    const classboardFilter = $('#classboardSkillFilter');
+    const previousClassboardFilter = classboardFilter?.value || 'all';
+    if (classboardFilter) {
+      classboardFilter.innerHTML = '<option value="all">جميع المهارات</option>' + state.skills.map(skill => `<option value="${escapeHTML(skill.id)}">${escapeHTML(skill.name)}</option>`).join('');
+      classboardFilter.value = state.skills.some(skill => skill.id === previousClassboardFilter) ? previousClassboardFilter : 'all';
     }
 
     const motivationFilter = $('#motivationSkillFilter');
@@ -730,12 +750,384 @@
     }
   }
 
+  function dashboardFilterState() {
+    const period = $('#dashboardPeriodFilter')?.value || '7';
+    const skillId = $('#dashboardInsightSkillFilter')?.value || 'all';
+    const startDate = period === 'all' ? '' : getMotivationPeriodStart(period === 'today' ? 1 : period);
+    return { period, skillId, startDate, endDate: todayISO() };
+  }
+
+  function dashboardEntryMatches(entry, filters, { includeAbsent = false } = {}) {
+    if (!entry) return false;
+    if (!includeAbsent && entry.absent) return false;
+    if (filters.skillId !== 'all' && entry.skillId !== filters.skillId) return false;
+    if (filters.startDate && String(entry.date || '') < filters.startDate) return false;
+    if (filters.endDate && String(entry.date || '') > filters.endDate) return false;
+    return true;
+  }
+
+  function getLatestEntryWithinPeriod(studentId, skillId, filters) {
+    return state.entries
+      .filter(entry => entry.studentId === studentId && entry.skillId === skillId && dashboardEntryMatches(entry, filters))
+      .sort((a, b) => {
+        const dateCompare = String(b.date || '').localeCompare(String(a.date || ''));
+        if (dateCompare !== 0) return dateCompare;
+        return String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || ''));
+      })[0] || null;
+  }
+
+  function dashboardStudentSummaries(filters) {
+    const skills = filters.skillId === 'all' ? state.skills : state.skills.filter(skill => skill.id === filters.skillId);
+    return state.students.map(student => {
+      const latestEntries = skills.map(skill => getLatestEntryWithinPeriod(student.id, skill.id, filters)).filter(Boolean);
+      const levels = latestEntries.map(entry => Number(entry.postLevel)).filter(Boolean);
+      const average = levels.length ? levels.reduce((sum, level) => sum + level, 0) / levels.length : 0;
+      const supportCount = levels.filter(level => level <= 2).length;
+      const enrichmentCount = levels.filter(level => level === 4).length;
+      const level = average ? Math.max(1, Math.min(4, Math.round(average))) : 0;
+      return { student, latestEntries, levels, average, level, ratedCount: levels.length, supportCount, enrichmentCount };
+    });
+  }
+
+  function dashboardPeriodEntries(filters, { includeAbsent = false } = {}) {
+    return state.entries.filter(entry => dashboardEntryMatches(entry, filters, { includeAbsent }));
+  }
+
+  function dashboardPeriodRewards(filters, targetType = 'student') {
+    return state.motivation.rewards.filter(reward => {
+      if (targetType && reward.targetType !== targetType) return false;
+      if (filters.skillId !== 'all' && reward.skillId !== filters.skillId) return false;
+      if (filters.startDate && String(reward.date || '') < filters.startDate) return false;
+      if (filters.endDate && String(reward.date || '') > filters.endDate) return false;
+      return true;
+    });
+  }
+
+  function calculateImprovedStudents(entries) {
+    return new Set(entries.filter(entry => !entry.absent && Number(entry.postLevel || 0) > Number(entry.preLevel || 0)).map(entry => entry.studentId)).size;
+  }
+
+  function dashboardSkillMetrics(filters) {
+    const skills = filters.skillId === 'all' ? state.skills : state.skills.filter(skill => skill.id === filters.skillId);
+    return skills.map(skill => {
+      const entries = state.students.map(student => getLatestEntryWithinPeriod(student.id, skill.id, filters)).filter(Boolean);
+      const mastery = entries.filter(entry => Number(entry.postLevel) >= 3).length;
+      const support = entries.filter(entry => Number(entry.postLevel) <= 2).length;
+      return {
+        skill,
+        rated: entries.length,
+        mastery,
+        support,
+        rate: entries.length ? Math.round(mastery / entries.length * 100) : 0
+      };
+    });
+  }
+
+  function dashboardErrorMetrics(entries) {
+    const counts = Object.fromEntries(ERROR_CODES.map(error => [error.id, 0]));
+    entries.forEach(entry => (entry.errorCodes || []).forEach(id => { if (counts[id] !== undefined) counts[id] += 1; }));
+    return ERROR_CODES.map(error => ({ ...error, count: counts[error.id] || 0 })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'ar'));
+  }
+
+  function dashboardTrendPoints(filters) {
+    const entries = dashboardPeriodEntries(filters);
+    const dates = Array.from(new Set(entries.map(entry => entry.date).filter(Boolean))).sort();
+    if (!dates.length) return [];
+    const sampled = dates.length <= 10 ? dates : Array.from({ length: 10 }, (_, index) => dates[Math.round(index * (dates.length - 1) / 9)]).filter((date, index, arr) => index === 0 || date !== arr[index - 1]);
+    const skills = filters.skillId === 'all' ? state.skills : state.skills.filter(skill => skill.id === filters.skillId);
+    return sampled.map(date => {
+      const localFilters = { ...filters, endDate: date };
+      const rated = [];
+      state.students.forEach(student => skills.forEach(skill => {
+        const entry = getLatestEntryWithinPeriod(student.id, skill.id, localFilters);
+        if (entry) rated.push(entry);
+      }));
+      const mastery = rated.filter(entry => Number(entry.postLevel) >= 3).length;
+      return { date, rate: rated.length ? Math.round(mastery / rated.length * 100) : 0, rated: rated.length };
+    });
+  }
+
+  function dashboardKpiCard(icon, value, label, note, tone = 'teal') {
+    return `<article class="dashboard-kpi-card kpi-${tone}">
+      <div class="dashboard-kpi-icon">${icon}</div>
+      <div class="dashboard-kpi-copy"><span>${escapeHTML(label)}</span><strong>${value}</strong><small>${escapeHTML(note || '')}</small></div>
+    </article>`;
+  }
+
   function renderDashboard() {
     const setupBanner = $('#setupBanner');
     if (setupBanner) setupBanner.hidden = state.students.length > 0;
+    const filters = dashboardFilterState();
+    const entries = dashboardPeriodEntries(filters);
+    const summaries = dashboardStudentSummaries(filters);
+    const ratedSummaries = summaries.filter(item => item.ratedCount);
+    const currentLevels = ratedSummaries.map(item => item.level).filter(Boolean);
+    const masteryStudents = ratedSummaries.filter(item => item.average >= 3).length;
+    const masteryRate = ratedSummaries.length ? Math.round(masteryStudents / ratedSummaries.length * 100) : 0;
+    const support = ratedSummaries.filter(item => item.average < 2.5 || item.supportCount > Math.max(1, item.ratedCount / 2)).sort((a, b) => a.average - b.average || b.supportCount - a.supportCount);
+    const enrichment = ratedSummaries.filter(item => item.average >= 3.3 || item.enrichmentCount > 0).sort((a, b) => b.average - a.average || b.enrichmentCount - a.enrichmentCount);
+    const rewards = dashboardPeriodRewards(filters, 'student');
+    const stars = rewards.filter(reward => reward.rewardType !== 'badge').reduce((sum, reward) => sum + rewardPoints(reward), 0);
+    const badges = rewards.filter(reward => reward.rewardType === 'badge').length;
+    const improvedStudents = calculateImprovedStudents(entries);
+    const media = entries.flatMap(entry => entry.media || []);
+    const imageCount = media.filter(item => String(item.type || '').startsWith('image')).length;
+    const audioCount = media.filter(item => String(item.type || '').startsWith('audio')).length;
+    const evidenceStudents = new Set(entries.filter(entry => (entry.media || []).length).map(entry => entry.studentId)).size;
+    const todayEntries = state.entries.filter(entry => entry.date === todayISO() && !entry.absent && (filters.skillId === 'all' || entry.skillId === filters.skillId)).length;
 
-    const maxDate = $('#dashboardDateFilter')?.value || todayISO();
-    const skillFilter = $('#dashboardSkillFilter')?.value || 'all';
+    const classParts = [state.settings.grade, state.settings.className].filter(Boolean);
+    const classChip = $('#dashboardClassChip');
+    if (classChip) classChip.querySelector('strong').textContent = classParts.length ? classParts.join(' — ') : 'غير محدد';
+
+    const stats = $('#dashboardInsightStats');
+    if (stats) stats.innerHTML = [
+      dashboardKpiCard('👥', toArabicDigits(state.students.length), 'عدد الطلاب', ratedSummaries.length ? `${toArabicDigits(ratedSummaries.length)} لديهم رصد في الفترة` : 'أضف أول رصد لبدء التحليل', 'blue'),
+      dashboardKpiCard('✓', toArabicDigits(todayEntries), 'عمليات الرصد اليوم', `${toArabicDigits(entries.length)} رصدًا ضمن الفترة`, 'teal'),
+      dashboardKpiCard('⭐', `${toArabicDigits(masteryRate)}٪`, 'نسبة الإتقان فأعلى', `${toArabicDigits(masteryStudents)} من الطلاب المرصودين`, 'green'),
+      dashboardKpiCard('🌱', toArabicDigits(support.length), 'أولوية الدعم', support.length ? 'يحتاجون إلى متابعة قريبة' : 'لا توجد أولوية دعم واضحة', 'rose'),
+      dashboardKpiCard('💎', toArabicDigits(enrichment.length), 'فرص الإثراء', enrichment.length ? 'جاهزون لتحديات أعمق' : 'تظهر بعد توفر رصد كافٍ', 'purple'),
+      dashboardKpiCard('📈', toArabicDigits(improvedStudents), 'طلاب تحسنوا', 'تحسن بين المستوى القبلي والبعدي', 'gold'),
+      dashboardKpiCard('⭐', toArabicDigits(stars), 'رصيد النجوم', `${toArabicDigits(badges)} أوسمة في الفترة`, 'gold'),
+      dashboardKpiCard('📎', toArabicDigits(imageCount + audioCount), 'شواهد التعلم', `${toArabicDigits(imageCount)} صور • ${toArabicDigits(audioCount)} تسجيلات`, 'blue')
+    ].join('');
+
+    renderDashboardPulse({ todayEntries, improvedStudents, rewards, support, entries });
+    renderDashboardSmartAlert({ filters, entries, support, enrichment });
+    renderDashboardLevelInsight(currentLevels);
+    renderDashboardSkillInsight(dashboardSkillMetrics(filters));
+    renderDashboardTrend(dashboardTrendPoints(filters));
+    renderDashboardErrors(dashboardErrorMetrics(entries));
+    renderDashboardDecisionLists(support, enrichment);
+    renderDashboardMotivation(filters, rewards, stars, badges);
+    renderDashboardGroups(filters);
+    renderDashboardRecentActivity(filters, entries, rewards);
+    renderDashboardEvidence({ imageCount, audioCount, evidenceStudents, total: imageCount + audioCount });
+    hydrateStudentAvatars($('#view-dashboard') || document).catch(error => console.warn('تعذر تحديث صور لوحة المؤشرات:', error));
+  }
+
+  function renderDashboardPulse({ todayEntries, improvedStudents, rewards, support, entries }) {
+    const container = $('#dashboardPulse');
+    if (!container) return;
+    const pending = state.motivation.suggestions.filter(item => item.status !== 'approved' && item.status !== 'dismissed').length;
+    container.innerHTML = `<div class="pulse-title"><span class="pulse-live-dot"></span><div><strong>نبض الفصل اليوم</strong><small>${formatDate(todayISO())}</small></div></div>
+      <div class="pulse-metrics">
+        <span><b>${toArabicDigits(todayEntries)}</b> رصد اليوم</span>
+        <span><b>${toArabicDigits(improvedStudents)}</b> تحسن في الفترة</span>
+        <span><b>${toArabicDigits(rewards.length)}</b> تحفيز</span>
+        <span><b>${toArabicDigits(pending)}</b> اقتراح بانتظار الاعتماد</span>
+        <span><b>${toArabicDigits(support.length)}</b> أولوية دعم</span>
+        <span><b>${toArabicDigits(entries.length)}</b> عملية تحليل</span>
+      </div>`;
+  }
+
+  function renderDashboardSmartAlert({ filters, entries, support, enrichment }) {
+    const container = $('#dashboardSmartAlert');
+    if (!container) return;
+    if (!entries.length) {
+      container.className = 'dashboard-smart-alert alert-neutral';
+      container.innerHTML = `<div class="smart-alert-icon">🧭</div><div><strong>ابدأ أول رصد لتعمل البوصلة</strong><span>ستظهر هنا تلقائيًا أهم أولوية تعليمية في الفصل.</span></div><button class="button button-primary button-small" data-view="daily" type="button">ابدأ الرصد</button>`;
+      return;
+    }
+    const skills = dashboardSkillMetrics(filters).filter(item => item.rated);
+    const weakest = skills.slice().sort((a, b) => a.rate - b.rate || b.rated - a.rated)[0];
+    const topError = dashboardErrorMetrics(entries).find(item => item.count > 0);
+    let title = 'المؤشرات مستقرة';
+    let text = enrichment.length ? `يوجد ${toArabicDigits(enrichment.length)} طلاب جاهزون للإثراء، مع استمرار متابعة التقدم.` : 'استمر في الرصد الدوري للحفاظ على صورة دقيقة للتقدم.';
+    let icon = '✨';
+    let tone = 'alert-positive';
+    if (weakest && weakest.rate < 60) {
+      title = `أولوية تعليمية: ${weakest.skill.name}`;
+      text = `نسبة الإتقان الحالية ${toArabicDigits(weakest.rate)}٪${topError ? `، وأكثر بصمة خطأ ظهورًا: ${topError.label}.` : '.'}`;
+      icon = '🎯';
+      tone = 'alert-warning';
+    } else if (support.length) {
+      title = `يوجد ${toArabicDigits(support.length)} طلاب بحاجة إلى دعم قريب`;
+      text = topError ? `ابدأ ببصمة الخطأ الأكثر ظهورًا: ${topError.label}، ثم راقب أثر التدخل.` : 'ابدأ بالطلاب الأقل متوسطًا ثم أعد القياس بعد التدخل.';
+      icon = '🌱';
+      tone = 'alert-support';
+    }
+    container.className = `dashboard-smart-alert ${tone}`;
+    container.innerHTML = `<div class="smart-alert-icon">${icon}</div><div><strong>${escapeHTML(title)}</strong><span>${escapeHTML(text)}</span></div><button class="button button-ghost button-small" data-view="classboard" type="button">عرض التفاصيل</button>`;
+  }
+
+  function renderDashboardLevelInsight(levels) {
+    const donut = $('#dashboardLevelDonut');
+    const legend = $('#dashboardLevelLegend');
+    if (!donut || !legend) return;
+    const total = levels.length;
+    if (!total) {
+      donut.innerHTML = `<div class="donut-empty"><strong>—</strong><span>لا توجد بيانات</span></div>`;
+      legend.innerHTML = emptyState('لا توجد مستويات بعد', 'سيظهر التوزيع بعد تسجيل أول رصد.');
+      return;
+    }
+    const counts = [1, 2, 3, 4].map(level => levels.filter(value => value === level).length);
+    const percentages = counts.map(count => count / total * 100);
+    let cursor = 0;
+    const colors = ['var(--level-1)', 'var(--level-2)', 'var(--level-3)', 'var(--level-4)'];
+    const segments = percentages.map((percentage, index) => {
+      const start = cursor;
+      cursor += percentage;
+      return `${colors[index]} ${start}% ${cursor}%`;
+    }).join(', ');
+    const mastery = Math.round((counts[2] + counts[3]) / total * 100);
+    donut.innerHTML = `<div class="level-donut" style="background:conic-gradient(${segments})"><div class="level-donut-center"><strong>${toArabicDigits(mastery)}٪</strong><span>إتقان فأعلى</span></div></div>`;
+    legend.innerHTML = [1, 2, 3, 4].map((level, index) => `<button class="level-insight-row" data-view="classboard" type="button"><i class="legend-dot level-${level}"></i><span>${LEVELS[level].emoji} ${LEVELS[level].name}</span><b>${toArabicDigits(counts[index])}</b><small>${toArabicDigits(Math.round(percentages[index]))}٪</small></button>`).join('');
+  }
+
+  function renderDashboardSkillInsight(metrics) {
+    const container = $('#dashboardSkillsBars');
+    if (!container) return;
+    if (!metrics.some(item => item.rated)) {
+      container.innerHTML = emptyState('لا توجد بيانات مهارات', 'ابدأ الرصد لتظهر نسب الإتقان لكل مهارة.');
+      return;
+    }
+    container.innerHTML = metrics.map(item => {
+      const tone = item.rate >= 75 ? 'strong' : item.rate >= 50 ? 'medium' : 'needs-support';
+      return `<button class="skill-progress-row ${tone}" data-action="dashboard-open-skill" data-skill-id="${escapeHTML(item.skill.id)}" type="button">
+        <div class="skill-progress-head"><div><strong>${escapeHTML(item.skill.name)}</strong><small>${escapeHTML(item.skill.domain || '')}</small></div><b>${item.rated ? `${toArabicDigits(item.rate)}٪` : '—'}</b></div>
+        <div class="skill-progress-track"><span style="width:${item.rate}%"></span></div>
+        <div class="skill-progress-foot"><span>${toArabicDigits(item.mastery)} متقن</span><span>${toArabicDigits(item.support)} يحتاج دعمًا</span><span>${toArabicDigits(item.rated)} مرصود</span></div>
+      </button>`;
+    }).join('');
+  }
+
+  function renderDashboardTrend(points) {
+    const container = $('#dashboardTrendChart');
+    const summary = $('#dashboardTrendSummary');
+    if (!container) return;
+    if (!points.length) {
+      container.innerHTML = emptyState('لا يوجد اتجاه بعد', 'تحتاج إلى رصد في أكثر من وقت ليظهر منحنى التقدم.');
+      if (summary) summary.textContent = '—';
+      return;
+    }
+    const first = points[0].rate;
+    const last = points[points.length - 1].rate;
+    const delta = last - first;
+    if (summary) {
+      summary.textContent = points.length === 1 ? `${toArabicDigits(last)}٪ حاليًا` : `${delta >= 0 ? '▲' : '▼'} ${toArabicDigits(Math.abs(delta))}٪`;
+      summary.classList.toggle('negative', delta < 0);
+    }
+    const width = 640, height = 220, padX = 34, padY = 24;
+    const xStep = points.length > 1 ? (width - padX * 2) / (points.length - 1) : 0;
+    const coords = points.map((point, index) => ({ x: padX + index * xStep, y: height - padY - (point.rate / 100) * (height - padY * 2), ...point }));
+    const polyline = coords.map(point => `${point.x},${point.y}`).join(' ');
+    const area = coords.length > 1 ? `${padX},${height-padY} ${polyline} ${coords[coords.length-1].x},${height-padY}` : '';
+    const grid = [0,25,50,75,100].map(value => { const y = height-padY-(value/100)*(height-padY*2); return `<line x1="${padX}" y1="${y}" x2="${width-padX}" y2="${y}" class="trend-grid-line"/><text x="${width-4}" y="${y+4}" class="trend-grid-label">${toArabicDigits(value)}٪</text>`; }).join('');
+    const dots = coords.map(point => `<circle cx="${point.x}" cy="${point.y}" r="5" class="trend-dot"><title>${formatDate(point.date)} — ${toArabicDigits(point.rate)}٪</title></circle>`).join('');
+    const labels = coords.map((point, index) => (index === 0 || index === coords.length - 1 || coords.length <= 6 || index % 2 === 0) ? `<text x="${point.x}" y="${height-4}" text-anchor="middle" class="trend-date-label">${escapeHTML(shortDate(point.date))}</text>` : '').join('');
+    container.innerHTML = `<svg class="trend-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="منحنى نسبة الإتقان عبر الزمن">${grid}${area ? `<polygon points="${area}" class="trend-area"/>` : ''}<polyline points="${polyline}" class="trend-line"/>${dots}${labels}</svg>`;
+  }
+
+  function shortDate(value) {
+    const parts = String(value || '').split('-');
+    return parts.length === 3 ? `${toArabicDigits(Number(parts[2]))}/${toArabicDigits(Number(parts[1]))}` : value;
+  }
+
+  function renderDashboardErrors(metrics) {
+    const container = $('#dashboardErrorBars');
+    if (!container) return;
+    const visible = metrics.filter(item => item.count > 0);
+    if (!visible.length) {
+      container.innerHTML = emptyState('لا توجد بصمات خطأ مسجلة', 'عند تحديد بصمة الخطأ في الرصد ستظهر هنا تلقائيًا.');
+      return;
+    }
+    const max = Math.max(...visible.map(item => item.count), 1);
+    container.innerHTML = visible.map((item, index) => `<div class="error-insight-row ${index === 0 ? 'top-error' : ''}">
+      <div class="error-code-badge">${escapeHTML(item.code)}</div>
+      <div class="error-insight-main"><div><strong>${escapeHTML(item.label)}</strong><span>${toArabicDigits(item.count)} مرة</span></div><div class="error-progress-track"><span style="width:${Math.round(item.count/max*100)}%"></span></div></div>
+    </div>`).join('');
+  }
+
+  function renderDashboardDecisionLists(support, enrichment) {
+    const supportContainer = $('#dashboardSupportList');
+    const enrichmentContainer = $('#dashboardEnrichmentList');
+    if (supportContainer) supportContainer.innerHTML = support.length ? support.slice(0, 5).map(item => dashboardPersonCard(item, 'support')).join('') : `<div class="mini-empty-state">لا توجد أولوية دعم واضحة.</div>`;
+    if (enrichmentContainer) enrichmentContainer.innerHTML = enrichment.length ? enrichment.slice(0, 5).map(item => dashboardPersonCard(item, 'enrichment')).join('') : `<div class="mini-empty-state">لا توجد فرص إثراء محددة بعد.</div>`;
+  }
+
+  function dashboardPersonCard(item, type) {
+    const detail = type === 'support' ? `${toArabicDigits(item.supportCount)} مهارة بحاجة إلى متابعة` : `${toArabicDigits(item.enrichmentCount)} مهارة في الامتداد`;
+    const badge = item.average ? `${toArabicDigits(item.average.toFixed(1))}/٤` : '—';
+    return `<button class="dashboard-person-card ${type}" data-action="open-student" data-student-id="${escapeHTML(item.student.id)}" type="button">
+      ${studentAvatarHTML(item.student, { context: 'dashboard', className: 'dashboard-person-avatar' })}
+      <div><strong>${escapeHTML(item.student.name)}</strong><span>${detail}</span></div><b>${badge}</b>
+    </button>`;
+  }
+
+  function renderDashboardMotivation(filters, rewards, stars, badges) {
+    const summary = $('#dashboardMotivationSummary');
+    const recent = $('#dashboardRecentRewards');
+    const equity = $('#dashboardEquityAlert');
+    if (!summary || !recent || !equity) return;
+    const recognized = new Set(rewards.map(reward => reward.targetId)).size;
+    const pending = state.motivation.suggestions.filter(item => item.status !== 'approved' && item.status !== 'dismissed').length;
+    summary.innerHTML = [
+      ['⭐', stars, 'نجوم'], ['🏅', badges, 'أوسمة'], ['👤', recognized, 'طلاب حُفزوا'], ['✨', pending, 'اقتراحات']
+    ].map(([icon, value, label]) => `<div><span>${icon}</span><strong>${toArabicDigits(value)}</strong><small>${label}</small></div>`).join('');
+    const equityStart = getMotivationPeriodStart(14);
+    const recentlyRecognized = new Set(state.motivation.rewards.filter(reward => reward.targetType === 'student' && String(reward.date || '') >= equityStart).map(reward => reward.targetId));
+    const unrecognized = state.students.filter(student => !recentlyRecognized.has(student.id));
+    equity.innerHTML = unrecognized.length ? `<span>⚖️</span><div><strong>تنبيه عدالة التحفيز</strong><small>${toArabicDigits(unrecognized.length)} طلاب لم يسجل لهم تحفيز خلال آخر ١٤ يومًا.</small></div><button class="mini-link" data-view="motivation" type="button">راجعهم</button>` : `<span>✓</span><div><strong>تغطية تحفيزية جيدة</strong><small>جميع الطلاب لديهم تحفيز مسجل خلال آخر ١٤ يومًا.</small></div>`;
+    const sorted = rewards.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdAt || '').localeCompare(String(a.createdAt || ''))).slice(0, 4);
+    recent.innerHTML = sorted.length ? sorted.map(reward => {
+      const student = state.students.find(item => item.id === reward.targetId);
+      return `<button class="recent-reward-row" data-action="open-student" data-student-id="${escapeHTML(reward.targetId)}" type="button">${student ? studentAvatarHTML(student, { context: 'dashboard', className: 'recent-reward-avatar' }) : ''}<span class="reward-symbol">${reward.rewardType === 'badge' ? (rewardBadgeInfo(reward)?.icon || '🏅') : rewardTypeInfo(reward).icon}</span><div><strong>${escapeHTML(student?.name || 'طالب')}</strong><small>${escapeHTML(rewardTitle(reward))} • ${escapeHTML(rewardSkillName(reward))}</small></div><time>${escapeHTML(shortDate(reward.date))}</time></button>`;
+    }).join('') : `<div class="mini-empty-state">لم يسجل تحفيز في الفترة المحددة.</div>`;
+  }
+
+  function renderDashboardGroups(filters) {
+    const container = $('#dashboardGroupsSummary');
+    if (!container) return;
+    if (!state.motivation.groups.length) {
+      container.innerHTML = `<div class="mini-empty-state">لم تُنشأ مجموعات بعد. <button class="mini-link" data-action="dashboard-open-groups" type="button">أنشئ المجموعات</button></div>`;
+      return;
+    }
+    const groupRewards = dashboardPeriodRewards(filters, 'group');
+    const rows = state.motivation.groups.map(group => {
+      const rewards = groupRewards.filter(reward => reward.targetId === group.id);
+      const total = rewards.reduce((sum, reward) => sum + rewardPoints(reward), 0);
+      const criteria = Object.fromEntries(GROUP_CRITERIA.map(item => [item.id, 0]));
+      rewards.forEach(reward => { if (criteria[reward.groupCriterionId] !== undefined) criteria[reward.groupCriterionId] += rewardPoints(reward); });
+      const bestCriterion = GROUP_CRITERIA.map(item => ({ ...item, value: criteria[item.id] || 0 })).sort((a, b) => b.value - a.value)[0];
+      return { group, total, bestCriterion };
+    }).sort((a, b) => b.total - a.total);
+    container.innerHTML = rows.slice(0, 5).map((item, index) => `<button class="dashboard-group-row" data-action="open-reward-history" data-target-type="group" data-target-id="${escapeHTML(item.group.id)}" type="button"><span class="group-rank">${index === 0 ? '🏆' : toArabicDigits(index + 1)}</span><div><strong>${escapeHTML(item.group.name)}</strong><small>${toArabicDigits(item.group.memberIds?.length || 0)} أعضاء${item.bestCriterion?.value ? ` • الأقوى: ${item.bestCriterion.label}` : ''}</small></div><b>${toArabicDigits(item.total)}</b><span>نقطة</span></button>`).join('');
+  }
+
+  function renderDashboardRecentActivity(filters, entries, rewards) {
+    const container = $('#dashboardRecentActivity');
+    if (!container) return;
+    const entryActivities = entries.map(entry => ({
+      type: 'entry', date: entry.date, stamp: entry.updatedAt || entry.createdAt || entry.date,
+      studentId: entry.studentId, title: 'رصد تعلم',
+      text: `${state.skills.find(skill => skill.id === entry.skillId)?.name || 'مهارة'} • ${LEVELS[entry.postLevel]?.name || ''}`,
+      icon: '✓'
+    }));
+    const rewardActivities = rewards.map(reward => ({
+      type: 'reward', date: reward.date, stamp: reward.createdAt || reward.date,
+      studentId: reward.targetId, title: rewardTitle(reward), text: rewardSkillName(reward), icon: reward.rewardType === 'badge' ? (rewardBadgeInfo(reward)?.icon || '🏅') : rewardTypeInfo(reward).icon
+    }));
+    const combined = [...entryActivities, ...rewardActivities].sort((a, b) => String(b.stamp || '').localeCompare(String(a.stamp || ''))).slice(0, 6);
+    container.innerHTML = combined.length ? combined.map(item => {
+      const student = state.students.find(student => student.id === item.studentId);
+      return `<button class="activity-row" data-action="open-student" data-student-id="${escapeHTML(item.studentId)}" type="button"><span class="activity-icon ${item.type}">${item.icon}</span><div><strong>${escapeHTML(student?.name || 'طالب')}</strong><small>${escapeHTML(item.title)} • ${escapeHTML(item.text)}</small></div><time>${escapeHTML(shortDate(item.date))}</time></button>`;
+    }).join('') : `<div class="mini-empty-state">لا توجد نشاطات ضمن الفترة المحددة.</div>`;
+  }
+
+  function renderDashboardEvidence({ imageCount, audioCount, evidenceStudents, total }) {
+    const container = $('#dashboardEvidenceSummary');
+    if (!container) return;
+    container.innerHTML = `
+      <div class="evidence-stat"><span>🖼️</span><strong>${toArabicDigits(imageCount)}</strong><small>صور حلول</small></div>
+      <div class="evidence-stat"><span>🎙️</span><strong>${toArabicDigits(audioCount)}</strong><small>تسجيلات صوتية</small></div>
+      <div class="evidence-stat"><span>👤</span><strong>${toArabicDigits(evidenceStudents)}</strong><small>طلاب لديهم شواهد</small></div>
+      <div class="evidence-stat"><span>📎</span><strong>${toArabicDigits(total)}</strong><small>إجمالي الشواهد</small></div>`;
+  }
+
+  function renderClassboard() {
+    const maxDate = $('#classboardDateFilter')?.value || todayISO();
+    const skillFilter = $('#classboardSkillFilter')?.value || 'all';
     const visibleSkills = skillFilter === 'all' ? state.skills : state.skills.filter(skill => skill.id === skillFilter);
     const matrix = buildLatestMatrix(maxDate, visibleSkills);
     const ratedItems = matrix.flatMap(row => row.cells).filter(cell => cell.entry && !cell.entry.absent);
@@ -744,7 +1136,8 @@
     const todayEntries = state.entries.filter(entry => entry.date === todayISO() && !entry.absent).length;
     const supportStudents = calculateStudentSummaries(maxDate).filter(item => item.ratedCount && item.average < 2.5).length;
 
-    $('#dashboardStats').innerHTML = [
+    const stats = $('#classboardStats');
+    if (stats) stats.innerHTML = [
       statCard('◉', toArabicDigits(state.students.length), 'عدد الطلاب', 'rgba(15,118,110,0.11)'),
       statCard('✓', toArabicDigits(todayEntries), 'عمليات الرصد اليوم', 'rgba(201,154,46,0.14)'),
       statCard('⭐', `${toArabicDigits(masteryRate)}٪`, 'نسبة الإتقان فأعلى', 'rgba(45,157,104,0.12)'),
@@ -755,7 +1148,7 @@
     renderDistribution(ratedItems);
     renderFlexibleGroups(maxDate, skillFilter);
     renderPriorityLists(maxDate);
-    hydrateStudentAvatars($('#view-dashboard') || document).catch(error => console.warn('تعذر تحديث صور لوحة الفصل:', error));
+    hydrateStudentAvatars($('#view-classboard') || document).catch(error => console.warn('تعذر تحديث صور لوحة الفصل:', error));
   }
 
   function statCard(icon, value, label, accent) {
@@ -3182,8 +3575,49 @@
   }
 
   function printDashboard() {
-    const maxDate = $('#dashboardDateFilter')?.value || todayISO();
-    const skillFilter = $('#dashboardSkillFilter')?.value || 'all';
+    const filters = dashboardFilterState();
+    const entries = dashboardPeriodEntries(filters);
+    const summaries = dashboardStudentSummaries(filters).filter(item => item.ratedCount);
+    const masteryStudents = summaries.filter(item => item.average >= 3).length;
+    const masteryRate = summaries.length ? Math.round(masteryStudents / summaries.length * 100) : 0;
+    const support = summaries.filter(item => item.average < 2.5 || item.supportCount > Math.max(1, item.ratedCount / 2)).sort((a, b) => a.average - b.average);
+    const enrichment = summaries.filter(item => item.average >= 3.3 || item.enrichmentCount > 0).sort((a, b) => b.average - a.average);
+    const skillMetrics = dashboardSkillMetrics(filters).filter(item => item.rated).sort((a, b) => a.rate - b.rate);
+    const errors = dashboardErrorMetrics(entries).filter(item => item.count > 0);
+    const rewards = dashboardPeriodRewards(filters, 'student');
+    const stars = rewards.filter(reward => reward.rewardType !== 'badge').reduce((sum, reward) => sum + rewardPoints(reward), 0);
+    const badges = rewards.filter(reward => reward.rewardType === 'badge').length;
+    const images = entries.flatMap(entry => entry.media || []).filter(item => String(item.type || '').startsWith('image')).length;
+    const audios = entries.flatMap(entry => entry.media || []).filter(item => String(item.type || '').startsWith('audio')).length;
+    const periodLabel = filters.period === 'all' ? 'جميع البيانات' : filters.period === 'today' ? 'اليوم' : `آخر ${toArabicDigits(filters.period)} أيام`;
+    const skillLabel = filters.skillId === 'all' ? 'جميع المهارات' : state.skills.find(skill => skill.id === filters.skillId)?.name || 'مهارة محددة';
+
+    const skillRows = skillMetrics.length ? skillMetrics.slice(0, 8).map(item => `<tr><td>${escapeHTML(item.skill.name)}</td><td>${toArabicDigits(item.rated)}</td><td>${toArabicDigits(item.mastery)}</td><td>${toArabicDigits(item.rate)}٪</td></tr>`).join('') : '<tr><td colspan="4">لا توجد بيانات مهارات في الفترة المحددة.</td></tr>';
+    const errorRows = errors.length ? errors.slice(0, 6).map(item => `<tr><td>${escapeHTML(item.code)}</td><td>${escapeHTML(item.label)}</td><td>${toArabicDigits(item.count)}</td><td>${escapeHTML(item.action)}</td></tr>`).join('') : '<tr><td colspan="4">لا توجد بصمات خطأ مسجلة.</td></tr>';
+    const supportRows = support.length ? support.slice(0, 8).map(item => `<tr><td class="student-print-name">${printStudentIdentity(item.student)}</td><td>${toArabicDigits(item.average.toFixed(1))}/٤</td><td>${toArabicDigits(item.supportCount)}</td></tr>`).join('') : '<tr><td colspan="3">لا توجد أولوية دعم واضحة.</td></tr>';
+    const enrichmentRows = enrichment.length ? enrichment.slice(0, 8).map(item => `<tr><td class="student-print-name">${printStudentIdentity(item.student)}</td><td>${toArabicDigits(item.average.toFixed(1))}/٤</td><td>${toArabicDigits(item.enrichmentCount)}</td></tr>`).join('') : '<tr><td colspan="3">لا توجد فرص إثراء محددة.</td></tr>';
+
+    launchPrint(`
+      ${printHeader('لوحة المؤشرات الذكية', `${periodLabel} • ${skillLabel}`)}
+      <div class="print-summary print-dashboard-summary">
+        <div class="print-summary-item"><strong>${toArabicDigits(state.students.length)}</strong><span>الطلاب</span></div>
+        <div class="print-summary-item"><strong>${toArabicDigits(entries.length)}</strong><span>عمليات الرصد</span></div>
+        <div class="print-summary-item"><strong>${toArabicDigits(masteryRate)}٪</strong><span>إتقان فأعلى</span></div>
+        <div class="print-summary-item"><strong>${toArabicDigits(support.length)}</strong><span>أولوية دعم</span></div>
+        <div class="print-summary-item"><strong>${toArabicDigits(enrichment.length)}</strong><span>فرص إثراء</span></div>
+        <div class="print-summary-item"><strong>${toArabicDigits(stars)}</strong><span>نجوم</span></div>
+        <div class="print-summary-item"><strong>${toArabicDigits(badges)}</strong><span>أوسمة</span></div>
+        <div class="print-summary-item"><strong>${toArabicDigits(images + audios)}</strong><span>شواهد</span></div>
+      </div>
+      <section class="print-section"><h2>قراءة المهارات</h2><table class="print-table"><thead><tr><th>المهارة</th><th>مرصود</th><th>متقن فأعلى</th><th>نسبة الإتقان</th></tr></thead><tbody>${skillRows}</tbody></table></section>
+      <section class="print-section"><h2>بصمة الخطأ الرياضي</h2><table class="print-table"><thead><tr><th>الرمز</th><th>نوع الخطأ</th><th>التكرار</th><th>الإجراء المقترح</th></tr></thead><tbody>${errorRows}</tbody></table></section>
+      <div class="print-two-columns"><section class="print-section"><h2>أولوية الدعم</h2><table class="print-table"><thead><tr><th>الطالب</th><th>المتوسط</th><th>مهارات الدعم</th></tr></thead><tbody>${supportRows}</tbody></table></section><section class="print-section"><h2>فرص الإثراء</h2><table class="print-table"><thead><tr><th>الطالب</th><th>المتوسط</th><th>مهارات الامتداد</th></tr></thead><tbody>${enrichmentRows}</tbody></table></section></div>
+      ${printFooter()}`);
+  }
+
+  function printClassboard() {
+    const maxDate = $('#classboardDateFilter')?.value || todayISO();
+    const skillFilter = $('#classboardSkillFilter')?.value || 'all';
     const skills = skillFilter === 'all' ? state.skills : state.skills.filter(skill => skill.id === skillFilter);
     const matrix = buildLatestMatrix(maxDate, skills);
     const rated = matrix.flatMap(row => row.cells).filter(cell => cell.entry);
