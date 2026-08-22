@@ -3538,3 +3538,564 @@ label > span,
     display: none;
   }
 }
+
+/* =========================================================
+   الإصدار 4: الصور التعريفية الرمزية والخصوصية
+   ========================================================= */
+.student-avatar {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+  isolation: isolate;
+  background: #e8f4f2;
+  border: 2px solid rgba(255,255,255,0.9);
+  box-shadow: 0 7px 18px rgba(15, 47, 61, 0.14);
+}
+
+.student-avatar img,
+.student-avatar .student-avatar-image,
+.student-avatar .student-avatar-fallback-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.student-avatar-photo .student-avatar-image {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.student-avatar-photo.avatar-loaded .student-avatar-image {
+  opacity: 1;
+}
+
+.student-avatar-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.student-avatar-initial {
+  background: linear-gradient(145deg, var(--primary), #279e91 58%, #1d4e6d);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.student-avatar-initial > span {
+  line-height: 1;
+}
+
+.student-identity,
+.print-student-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.student-identity > span:last-child,
+.print-student-identity > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heatmap-student-identity {
+  min-width: 150px;
+  font-weight: 800;
+}
+
+.heatmap-student-identity .student-avatar {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+  border-radius: 11px;
+}
+
+.person-row-identity {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.person-row-identity > div:last-child {
+  min-width: 0;
+}
+
+.person-avatar {
+  width: 38px;
+  height: 38px;
+  flex-basis: 38px;
+  border-radius: 12px;
+}
+
+.daily-student-identity {
+  min-width: 135px;
+  font-weight: 800;
+}
+
+.daily-student-identity .student-avatar {
+  width: 35px;
+  height: 35px;
+  flex-basis: 35px;
+  border-radius: 11px;
+}
+
+.quick-card-student-identity {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.quick-card-avatar {
+  width: 42px;
+  height: 42px;
+  flex-basis: 42px;
+  border-radius: 13px;
+}
+
+.student-card-avatar {
+  width: 48px;
+  height: 48px;
+  flex-basis: 48px;
+  border-radius: 15px;
+}
+
+.student-profile-avatar {
+  width: 68px !important;
+  height: 68px !important;
+  flex-basis: 68px !important;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.18) !important;
+}
+
+.motivation-avatar {
+  width: 50px;
+  height: 50px;
+  flex-basis: 50px;
+  border-radius: 15px;
+}
+
+.suggestion-avatar-wrap {
+  width: 48px;
+  height: 48px;
+  position: relative;
+  align-self: start;
+}
+
+.suggestion-avatar {
+  width: 48px;
+  height: 48px;
+  flex-basis: 48px;
+  border-radius: 14px;
+}
+
+.suggestion-reward-symbol {
+  position: absolute;
+  left: -5px;
+  bottom: -5px;
+  z-index: 4;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(21, 43, 58, 0.2);
+  font-size: 13px;
+}
+
+.group-member-chip {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px 4px 9px !important;
+}
+
+.group-chip-avatar,
+.small-avatar {
+  width: 30px;
+  height: 30px;
+  flex-basis: 30px;
+  border-radius: 9px;
+  box-shadow: none;
+}
+
+/* محرر الصورة التعريفية */
+.student-dialog-card {
+  width: min(820px, calc(100vw - 28px));
+}
+
+.student-avatar-editor {
+  padding: 16px;
+  border: 1px solid rgba(15,118,110,0.2);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 8% 4%, rgba(20,184,166,0.1), transparent 30%),
+    linear-gradient(145deg, #fbfefd, #f1f8f7);
+}
+
+.avatar-editor-heading,
+.settings-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.avatar-editor-heading h4,
+.settings-section-heading h3 {
+  margin: 3px 0 2px;
+  color: var(--navy);
+  font-size: 18px;
+}
+
+.avatar-editor-heading p,
+.settings-section-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.privacy-mini-badge {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #0b675e;
+  background: rgba(15,118,110,0.1);
+  border: 1px solid rgba(15,118,110,0.14);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.avatar-editor-main {
+  display: grid;
+  grid-template-columns: 145px minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.avatar-editor-preview {
+  min-height: 145px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 10px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 22px rgba(26, 58, 72, 0.07);
+}
+
+.avatar-editor-preview small {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.avatar-editor-avatar {
+  width: 104px;
+  height: 104px;
+  flex-basis: 104px;
+  border-radius: 28px;
+  font-size: 38px;
+}
+
+.avatar-mode-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.avatar-mode-button {
+  min-height: 94px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  color: var(--text);
+  background: #fff;
+  text-align: center;
+}
+
+.avatar-mode-button:hover,
+.avatar-mode-button.active {
+  border-color: rgba(15,118,110,0.55);
+  background: rgba(15,118,110,0.08);
+  box-shadow: 0 7px 17px rgba(15,118,110,0.1);
+}
+
+.avatar-mode-button > span {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.avatar-mode-button strong {
+  font-size: 12px;
+}
+
+.avatar-mode-button small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.avatar-editor-panel {
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px dashed rgba(15,118,110,0.22);
+}
+
+.avatar-panel-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+}
+
+.avatar-panel-title span {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.avatar-preset-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.avatar-preset-choice {
+  position: relative;
+  overflow: visible;
+  aspect-ratio: 1;
+  padding: 4px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(31, 61, 76, 0.07);
+}
+
+.avatar-preset-choice img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 12px;
+}
+
+.avatar-preset-choice > span {
+  position: absolute;
+  left: -4px;
+  bottom: -4px;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--navy);
+  border: 2px solid #fff;
+  font-size: 9px;
+  font-weight: 900;
+}
+
+.avatar-preset-choice.selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(15,118,110,0.12), 0 8px 18px rgba(15,118,110,0.15);
+  transform: translateY(-2px);
+}
+
+.avatar-photo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.avatar-initial-large {
+  width: 82px;
+  height: 82px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  color: #fff;
+  background: linear-gradient(145deg, var(--primary), var(--navy));
+  font-size: 34px;
+  font-weight: 900;
+  box-shadow: 0 9px 20px rgba(15,118,110,0.2);
+}
+
+/* إعدادات الخصوصية */
+.avatar-privacy-settings {
+  padding: 17px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(15,118,110,0.06), rgba(38,91,117,0.06));
+  border: 1px solid rgba(15,118,110,0.17);
+}
+
+.privacy-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.privacy-toggle-card {
+  min-height: 86px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.88);
+  cursor: pointer;
+}
+
+.privacy-toggle-card:hover {
+  border-color: rgba(15,118,110,0.4);
+}
+
+.privacy-toggle-card input {
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  accent-color: var(--primary);
+}
+
+.privacy-toggle-card span {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.privacy-toggle-card strong {
+  color: var(--navy);
+  font-size: 12px;
+}
+
+.privacy-toggle-card small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+/* التقارير */
+.print-student-identity {
+  font-weight: 800;
+}
+
+.print-student-avatar {
+  width: 28px;
+  height: 28px;
+  flex-basis: 28px;
+  border-radius: 8px;
+  border-width: 1px;
+  box-shadow: none;
+}
+
+.print-student-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 12px;
+  padding: 10px 14px;
+  border: 1px solid #cfdfe3;
+  border-radius: 13px;
+  background: #f5faf9;
+}
+
+.print-student-hero-avatar {
+  width: 64px;
+  height: 64px;
+  flex-basis: 64px;
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.print-student-hero strong,
+.print-student-hero span {
+  display: block;
+}
+
+.print-student-hero strong {
+  color: #103c50;
+  font-size: 17px;
+}
+
+.print-student-hero span {
+  margin-top: 3px;
+  color: #64757d;
+  font-size: 11px;
+}
+
+@media (max-width: 720px) {
+  .student-dialog-card {
+    width: calc(100vw - 18px);
+  }
+
+  .avatar-editor-heading,
+  .settings-section-heading,
+  .avatar-panel-title {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .privacy-mini-badge {
+    align-self: flex-start;
+  }
+
+  .avatar-editor-main {
+    grid-template-columns: 1fr;
+  }
+
+  .avatar-editor-preview {
+    min-height: 126px;
+  }
+
+  .avatar-editor-avatar {
+    width: 92px;
+    height: 92px;
+    flex-basis: 92px;
+  }
+
+  .avatar-mode-buttons {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .avatar-mode-button {
+    min-height: 86px;
+    padding: 8px 4px;
+  }
+
+  .avatar-preset-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .privacy-toggle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .daily-student-identity {
+    min-width: 0;
+  }
+}
+
+@media print {
+  .print-student-avatar,
+  .print-student-hero-avatar {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

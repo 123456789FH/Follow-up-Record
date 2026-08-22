@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="صورة رمزية كرتونية للطالب">
+  <rect width="256" height="256" rx="64" fill="#F1E8FF"/>
+  <g opacity=".16" fill="none" stroke="#7C3AED" stroke-width="7"><circle cx="59" cy="69" r="23"/><circle cx="197" cy="64" r="19"/></g>
+  <circle cx="128" cy="130" r="101" fill="#fff" opacity=".45"/>
+  <path d="M47 256c6-54 38-84 89-84 50 0 83 30 89 84z" fill="#8B5CF6"/>
+  <path d="M109 164h54v31c-8 9-17 14-27 14-11 0-20-5-27-14z" fill="#B97850"/>
+  <ellipse cx="136" cy="118" rx="45" ry="50" fill="#B97850"/>
+  <path d="M82 111c2-39 22-59 53-59 31 0 51 21 53 59-12-17-30-26-52-26-23 0-41 9-54 26z" fill="#241A17"/><g fill="none" stroke="#7C3AED" stroke-width="6"><rect x="92" y="113" width="34" height="25" rx="10"/><rect x="140" y="113" width="34" height="25" rx="10"/><path d="M126 123h14"/></g>
+  <g fill="#172033"><circle cx="119" cy="118" r="4.5"/><circle cx="153" cy="118" r="4.5"/></g><path d="M124 143c7 7 18 7 25 0" fill="none" stroke="#9B4B4B" stroke-width="5" stroke-linecap="round"/>
+  <path d="M92 203c13 15 27 22 44 22 17 0 32-7 45-22" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="8" stroke-linecap="round"/>
+</svg>

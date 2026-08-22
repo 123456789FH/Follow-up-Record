@@ -5,6 +5,21 @@
   const DB_NAME = 'math_compass_media_v1';
   const DB_VERSION = 1;
   const MEDIA_STORE = 'media';
+  const AVATAR_PATH = './assets/avatars/';
+  const AVATAR_PRESETS = [
+    { id: 'avatar-01', label: 'مستكشف الأعداد' },
+    { id: 'avatar-02', label: 'محلل الأنماط' },
+    { id: 'avatar-03', label: 'خبير القياس' },
+    { id: 'avatar-04', label: 'مفكر هندسي' },
+    { id: 'avatar-05', label: 'باحث عن الحل' },
+    { id: 'avatar-06', label: 'نجمة الكسور' },
+    { id: 'avatar-07', label: 'صديق الأرقام' },
+    { id: 'avatar-08', label: 'بطل المثابرة' },
+    { id: 'avatar-09', label: 'مبدع المسائل' },
+    { id: 'avatar-10', label: 'مفسر بارع' },
+    { id: 'avatar-11', label: 'محقق رياضي' },
+    { id: 'avatar-12', label: 'قائد التحدي' }
+  ];
 
   const LEVELS = {
     1: { name: 'أبدأ', emoji: '🌱', short: 'دعم', description: 'بحاجة إلى دعم' },
@@ -174,7 +189,7 @@
   ];
 
   const DEFAULT_STATE = {
-    version: 3,
+    version: 4,
     settings: {
       teacher: '',
       school: '',
@@ -182,7 +197,11 @@
       className: '',
       semester: '',
       subject: 'الرياضيات',
-      reportTitle: 'سجل المتابعة اليومية لمادة الرياضيات'
+      reportTitle: 'سجل المتابعة اليومية لمادة الرياضيات',
+      showAvatarsInApp: true,
+      showAvatarsInDashboard: true,
+      showAvatarsInPrint: false,
+      includePhotosInBackup: false
     },
     students: [],
     skills: DEFAULT_SKILLS.map((skill, index) => ({
@@ -210,6 +229,9 @@
   let pendingAudio = null;
   let discardRecordingAfterStop = false;
   let pendingImages = [];
+  let pendingStudentAvatar = null;
+  let studentAvatarPreviewUrl = '';
+  const avatarObjectUrls = new Map();
   let objectUrls = new Set();
   let toastTimer = null;
 
@@ -228,11 +250,122 @@
     setupInstallPrompt();
   }
 
+  function avatarPresetPath(presetId) {
+    const resolved = AVATAR_PRESETS.some(item => item.id === presetId) ? presetId : AVATAR_PRESETS[0].id;
+    return `${AVATAR_PATH}${resolved}.svg`;
+  }
+
+  function studentInitial(student = {}) {
+    return String(student.name || '').trim().charAt(0) || 'ط';
+  }
+
+  function defaultAvatarPresetId(student = {}, index = 0) {
+    const source = String(student.id || student.name || index || 'student');
+    let hash = 0;
+    for (let i = 0; i < source.length; i += 1) hash = ((hash << 5) - hash + source.charCodeAt(i)) | 0;
+    return AVATAR_PRESETS[Math.abs(hash) % AVATAR_PRESETS.length].id;
+  }
+
+  function normalizeStudentAvatar(avatar, student = {}, index = 0) {
+    const legacyPreset = typeof avatar === 'string' && AVATAR_PRESETS.some(item => item.id === avatar) ? avatar : '';
+    const source = avatar && typeof avatar === 'object' ? avatar : {};
+    const presetId = AVATAR_PRESETS.some(item => item.id === source.presetId)
+      ? source.presetId
+      : (legacyPreset || defaultAvatarPresetId(student, index));
+    const requestedMode = source.mode || source.type || (legacyPreset ? 'preset' : 'preset');
+    const mode = ['preset', 'photo', 'initial'].includes(requestedMode) ? requestedMode : 'preset';
+    const mediaId = String(source.mediaId || '').trim();
+    return {
+      mode: mode === 'photo' && !mediaId ? 'preset' : mode,
+      presetId,
+      mediaId: mode === 'photo' ? mediaId : '',
+      mediaName: mode === 'photo' ? String(source.mediaName || '') : '',
+      mediaType: mode === 'photo' ? String(source.mediaType || '') : '',
+      updatedAt: String(source.updatedAt || '')
+    };
+  }
+
+  function shouldDisplayStudentAvatar(context = 'app') {
+    if (context === 'print') return Boolean(state.settings.showAvatarsInPrint);
+    if (context === 'dashboard') return Boolean(state.settings.showAvatarsInDashboard);
+    return Boolean(state.settings.showAvatarsInApp);
+  }
+
+  function studentAvatarHTML(student, { className = '', context = 'app', label = '' } = {}) {
+    if (!student || !shouldDisplayStudentAvatar(context)) return '';
+    const avatar = normalizeStudentAvatar(student.avatar, student);
+    const classes = ['avatar', 'student-avatar', className].filter(Boolean).join(' ');
+    const accessibleLabel = label || `الصورة التعريفية للطالب ${student.name || ''}`;
+    const fallbackImage = `<img class="student-avatar-fallback-image" src="${escapeHTML(avatarPresetPath(avatar.presetId))}" alt="" aria-hidden="true" />`;
+
+    if (avatar.mode === 'photo' && avatar.mediaId) {
+      return `<span class="${classes} student-avatar-photo" data-avatar-wrapper="${escapeHTML(avatar.mediaId)}">
+        <span class="student-avatar-fallback">${fallbackImage}</span>
+        <img class="student-avatar-image" data-avatar-media-id="${escapeHTML(avatar.mediaId)}" alt="${escapeHTML(accessibleLabel)}" />
+      </span>`;
+    }
+
+    if (avatar.mode === 'initial') {
+      return `<span class="${classes} student-avatar-initial" role="img" aria-label="${escapeHTML(accessibleLabel)}"><span>${escapeHTML(studentInitial(student))}</span></span>`;
+    }
+
+    return `<span class="${classes} student-avatar-preset" role="img" aria-label="${escapeHTML(accessibleLabel)}"><img class="student-avatar-image preset-image" src="${escapeHTML(avatarPresetPath(avatar.presetId))}" alt="" aria-hidden="true" /></span>`;
+  }
+
+  function studentIdentityHTML(student, { context = 'app', className = '' } = {}) {
+    return `<span class="student-identity ${escapeHTML(className)}">${studentAvatarHTML(student, { context })}<span>${escapeHTML(student?.name || '')}</span></span>`;
+  }
+
+  function printStudentIdentity(student) {
+    if (!student?.name) return '';
+    return `<span class="print-student-identity">${studentAvatarHTML(student, { context: 'print', className: 'print-student-avatar' })}<span>${escapeHTML(student.name)}</span></span>`;
+  }
+
+  async function hydrateStudentAvatars(root = document) {
+    const images = $$('img[data-avatar-media-id]', root);
+    for (const image of images) {
+      const mediaId = image.dataset.avatarMediaId;
+      if (!mediaId) continue;
+      let url = avatarObjectUrls.get(mediaId);
+      if (!url) {
+        try {
+          const record = await getMedia(mediaId);
+          if (!record?.blob) continue;
+          url = URL.createObjectURL(record.blob);
+          avatarObjectUrls.set(mediaId, url);
+        } catch (error) {
+          console.warn('تعذر تحميل صورة الطالب:', error);
+          continue;
+        }
+      }
+      const wrapper = image.closest('[data-avatar-wrapper]');
+      const markLoaded = () => wrapper?.classList.add('avatar-loaded');
+      if (image.src !== url) {
+        image.addEventListener('load', markLoaded, { once: true });
+        image.addEventListener('error', () => wrapper?.classList.remove('avatar-loaded'), { once: true });
+        image.src = url;
+      } else if (image.complete && image.naturalWidth) {
+        markLoaded();
+      }
+    }
+  }
+
+  function revokeAvatarObjectUrl(mediaId) {
+    const url = avatarObjectUrls.get(mediaId);
+    if (url) URL.revokeObjectURL(url);
+    avatarObjectUrls.delete(mediaId);
+  }
+
+  function revokeAllAvatarObjectUrls() {
+    avatarObjectUrls.forEach(url => URL.revokeObjectURL(url));
+    avatarObjectUrls.clear();
+  }
+
   function normalizeState() {
     if (!state || typeof state !== 'object') state = structuredCloneSafe(DEFAULT_STATE);
     state.settings = { ...DEFAULT_STATE.settings, ...(state.settings || {}) };
     state.students = Array.isArray(state.students) ? state.students : [];
-    state.students.forEach(student => {
+    state.students.forEach((student, index) => {
       if (student.note && !student.noteCategory && !student.noteChoice && !student.noteOther) {
         student.noteCategory = 'other';
         student.noteChoice = NOTE_OTHER_VALUE;
@@ -242,6 +375,7 @@
       student.noteChoice = student.noteChoice || '';
       student.noteOther = student.noteOther || '';
       student.note = getStudentNoteText(student);
+      student.avatar = normalizeStudentAvatar(student.avatar, student, index);
     });
     state.skills = Array.isArray(state.skills) && state.skills.length ? state.skills : structuredCloneSafe(DEFAULT_STATE.skills);
     state.entries = Array.isArray(state.entries) ? state.entries : [];
@@ -264,7 +398,7 @@
       reward.points = Number.isFinite(Number(reward.points)) ? Number(reward.points) : (REWARD_TYPES[reward.rewardType]?.points || 0);
     });
     state.motivation.suggestions = state.motivation.suggestions.filter(suggestion => state.students.some(student => student.id === suggestion.studentId));
-    state.version = 3;
+    state.version = 4;
     saveState();
   }
 
@@ -367,6 +501,9 @@
     });
 
     $('#saveStudentButton')?.addEventListener('click', saveStudentFromDialog);
+    $('#studentAvatarFileInput')?.addEventListener('change', handleStudentAvatarSelection);
+    $('#studentAvatarCameraInput')?.addEventListener('change', handleStudentAvatarSelection);
+    $('#studentName')?.addEventListener('input', updateStudentAvatarInitialPreview);
     $('#studentNoteCategory')?.addEventListener('change', () => renderStudentNoteChoices($('#studentNoteCategory')?.value || ''));
     $('#studentNoteChoice')?.addEventListener('change', toggleStudentNoteOther);
     $('#saveBulkStudentsButton')?.addEventListener('click', saveBulkStudents);
@@ -403,6 +540,7 @@
 
     $('#entryAbsent')?.addEventListener('change', updateEntryFormForAbsence);
 
+    $('#studentDialog')?.addEventListener('close', clearPendingStudentAvatar);
     $('#studentCardDialog')?.addEventListener('close', revokeObjectUrls);
     $('#entryDialog')?.addEventListener('close', () => {
       stopRecording(true);
@@ -430,6 +568,9 @@
     switch (action) {
       case 'open-quick-entry': navigate('daily'); break;
       case 'add-student': openStudentDialog(); break;
+      case 'select-student-avatar-mode': setPendingStudentAvatarMode(actionButton.dataset.avatarMode); break;
+      case 'select-student-avatar-preset': selectPendingStudentAvatarPreset(actionButton.dataset.avatarPreset); break;
+      case 'remove-student-avatar-photo': removePendingStudentAvatarPhoto(); break;
       case 'bulk-add-students': openDialog('bulkStudentsDialog'); break;
       case 'edit-student': openStudentDialog(actionButton.dataset.studentId); break;
       case 'delete-student': deleteStudent(actionButton.dataset.studentId); break;
@@ -541,6 +682,7 @@
     renderSkills();
     renderReports();
     renderSettings();
+    hydrateStudentAvatars(document).catch(error => console.warn('تعذر تحديث صور الطلاب:', error));
   }
 
   function renderContext() {
@@ -613,6 +755,7 @@
     renderDistribution(ratedItems);
     renderFlexibleGroups(maxDate, skillFilter);
     renderPriorityLists(maxDate);
+    hydrateStudentAvatars($('#view-dashboard') || document).catch(error => console.warn('تعذر تحديث صور لوحة الفصل:', error));
   }
 
   function statCard(icon, value, label, accent) {
@@ -672,7 +815,7 @@
         const level = LEVELS[entry.postLevel] || LEVELS[1];
         return `<td><button class="level-cell level-${entry.postLevel}" data-action="open-entry-cell" data-student-id="${escapeHTML(row.student.id)}" data-skill-id="${escapeHTML(skill.id)}" type="button" title="آخر رصد: ${escapeHTML(formatDate(entry.date))}"><span>${level.emoji} ${level.name}</span><small>${escapeHTML(formatDate(entry.date))}</small></button></td>`;
       }).join('');
-      return `<tr><td class="student-name-cell">${escapeHTML(row.student.name)}</td>${cells}</tr>`;
+      return `<tr><td class="student-name-cell">${studentIdentityHTML(row.student, { context: 'dashboard', className: 'heatmap-student-identity' })}</td>${cells}</tr>`;
     }).join('');
 
     container.innerHTML = `
@@ -780,7 +923,7 @@
       : `${toArabicDigits(item.enrichmentCount)} مهارة في مستوى الامتداد`;
     return `
       <button class="person-row" data-action="open-student" data-student-id="${escapeHTML(item.student.id)}" type="button">
-        <div><strong>${escapeHTML(item.student.name)}</strong><span>${detail}</span></div>
+        <div class="person-row-identity">${studentAvatarHTML(item.student, { context: 'dashboard', className: 'person-avatar' })}<div><strong>${escapeHTML(item.student.name)}</strong><span>${detail}</span></div></div>
         <span class="person-score ${type}">${toArabicDigits(score)}</span>
       </button>`;
   }
@@ -825,13 +968,14 @@
       <div class="quick-entry-card-list">${mobileCards}</div>`;
 
     updateDailyProgress();
+    hydrateStudentAvatars(container).catch(error => console.warn('تعذر تحديث صور الرصد:', error));
   }
 
   function renderQuickDesktopRow(student, entry) {
     const values = quickValuesFromEntry(entry);
     return `
       <tr class="quick-record" data-quick-student="${escapeHTML(student.id)}" data-level="${values.level}" data-absent="${values.absent}">
-        <td class="student-name">${escapeHTML(student.name)}</td>
+        <td class="student-name">${studentIdentityHTML(student, { context: 'app', className: 'daily-student-identity' })}</td>
         <td>${renderQuickPreSelect(values.preLevel)}</td>
         <td>${renderQuickLevelButtons(values.level, values.absent)}</td>
         <td>${renderQuickModeSelect(values.mode)}</td>
@@ -846,7 +990,7 @@
     return `
       <article class="quick-student-card" data-quick-student="${escapeHTML(student.id)}" data-level="${values.level}" data-absent="${values.absent}">
         <div class="quick-student-card-header">
-          <strong>${escapeHTML(student.name)}</strong>
+          <div class="quick-card-student-identity">${studentAvatarHTML(student, { context: 'app', className: 'quick-card-avatar' })}<strong>${escapeHTML(student.name)}</strong></div>
           <button class="table-action" data-action="quick-details" data-student-id="${escapeHTML(student.id)}" type="button">تفاصيل ومرفقات</button>
         </div>
         ${renderQuickLevelButtons(values.level, values.absent)}
@@ -1064,7 +1208,7 @@
       return `
         <button class="student-card" data-action="open-student" data-student-id="${escapeHTML(student.id)}" type="button">
           <div class="student-card-header">
-            <div class="avatar">${escapeHTML(student.name.trim().charAt(0) || 'ط')}</div>
+            ${studentAvatarHTML(student, { context: 'app', className: 'student-card-avatar' })}
             <div>
               <strong>${escapeHTML(student.name)}</strong>
               <small>${student.number ? `الرقم ${escapeHTML(toArabicDigits(student.number))}` : 'بطاقة تعلم فردية'}</small>
@@ -1077,6 +1221,7 @@
           </div>
         </button>`;
     }).join('');
+    hydrateStudentAvatars(grid).catch(error => console.warn('تعذر تحديث صور بطاقات الطلاب:', error));
   }
 
   function buildStudentNoteControls() {
@@ -1159,6 +1304,197 @@
     return STUDENT_NOTE_CATEGORIES.find(item => item.id === data.noteCategory)?.label || '';
   }
 
+  function initializeStudentAvatarDraft(student = null) {
+    clearPendingStudentAvatar();
+    const fallbackPresetId = student
+      ? normalizeStudentAvatar(student.avatar, student).presetId
+      : AVATAR_PRESETS[state.students.length % AVATAR_PRESETS.length].id;
+    const avatar = student
+      ? normalizeStudentAvatar(student.avatar, student)
+      : { mode: 'preset', presetId: fallbackPresetId, mediaId: '', mediaName: '', mediaType: '' };
+    pendingStudentAvatar = {
+      mode: avatar.mode,
+      presetId: avatar.presetId || fallbackPresetId,
+      originalMediaId: avatar.mediaId || '',
+      photoMediaId: avatar.mediaId || '',
+      mediaName: avatar.mediaName || '',
+      mediaType: avatar.mediaType || '',
+      newBlob: null,
+      newName: '',
+      newType: ''
+    };
+  }
+
+  function clearPendingStudentAvatar() {
+    if (studentAvatarPreviewUrl) {
+      URL.revokeObjectURL(studentAvatarPreviewUrl);
+      studentAvatarPreviewUrl = '';
+    }
+    pendingStudentAvatar = null;
+    if ($('#studentAvatarFileInput')) $('#studentAvatarFileInput').value = '';
+    if ($('#studentAvatarCameraInput')) $('#studentAvatarCameraInput').value = '';
+  }
+
+  function setPendingStudentAvatarMode(mode) {
+    if (!pendingStudentAvatar || !['preset', 'photo', 'initial'].includes(mode)) return;
+    pendingStudentAvatar.mode = mode;
+    renderStudentAvatarEditor();
+  }
+
+  function selectPendingStudentAvatarPreset(presetId) {
+    if (!pendingStudentAvatar || !AVATAR_PRESETS.some(item => item.id === presetId)) return;
+    pendingStudentAvatar.presetId = presetId;
+    pendingStudentAvatar.mode = 'preset';
+    renderStudentAvatarEditor();
+  }
+
+  function updateStudentAvatarInitialPreview() {
+    const preview = $('#studentAvatarInitialPreview');
+    if (preview) preview.textContent = studentInitial({ name: $('#studentName')?.value || '' });
+    if (pendingStudentAvatar?.mode === 'initial') renderStudentAvatarEditor();
+  }
+
+  function renderStudentAvatarEditor() {
+    if (!pendingStudentAvatar) return;
+    const mode = pendingStudentAvatar.mode;
+    $$('.avatar-mode-button').forEach(button => {
+      const selected = button.dataset.avatarMode === mode;
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+
+    const presetPanel = $('#studentAvatarPresetPanel');
+    const photoPanel = $('#studentAvatarPhotoPanel');
+    const initialPanel = $('#studentAvatarInitialPanel');
+    if (presetPanel) presetPanel.hidden = mode !== 'preset';
+    if (photoPanel) photoPanel.hidden = mode !== 'photo';
+    if (initialPanel) initialPanel.hidden = mode !== 'initial';
+
+    const presetGrid = $('#studentAvatarPresetGrid');
+    if (presetGrid) {
+      presetGrid.innerHTML = AVATAR_PRESETS.map((preset, index) => `
+        <button class="avatar-preset-choice ${pendingStudentAvatar.presetId === preset.id ? 'selected' : ''}" data-action="select-student-avatar-preset" data-avatar-preset="${escapeHTML(preset.id)}" type="button" aria-label="${escapeHTML(preset.label)}" aria-pressed="${pendingStudentAvatar.presetId === preset.id ? 'true' : 'false'}">
+          <img src="${escapeHTML(avatarPresetPath(preset.id))}" alt="" aria-hidden="true" />
+          <span>${toArabicDigits(index + 1)}</span>
+        </button>`).join('');
+    }
+
+    const name = $('#studentName')?.value || '';
+    const preview = $('#studentAvatarEditorPreview');
+    if (preview) {
+      if (mode === 'photo') {
+        if (studentAvatarPreviewUrl) {
+          preview.innerHTML = `<span class="avatar avatar-editor-avatar student-avatar-photo avatar-loaded"><img class="student-avatar-image" src="${escapeHTML(studentAvatarPreviewUrl)}" alt="معاينة الصورة الحقيقية" /></span><small>صورة حقيقية</small>`;
+        } else if (pendingStudentAvatar.photoMediaId) {
+          preview.innerHTML = `<span class="avatar avatar-editor-avatar student-avatar-photo" data-avatar-wrapper="${escapeHTML(pendingStudentAvatar.photoMediaId)}"><span class="student-avatar-fallback"><img class="student-avatar-fallback-image" src="${escapeHTML(avatarPresetPath(pendingStudentAvatar.presetId))}" alt="" /></span><img class="student-avatar-image" data-avatar-media-id="${escapeHTML(pendingStudentAvatar.photoMediaId)}" alt="معاينة الصورة الحقيقية" /></span><small>صورة حقيقية محفوظة</small>`;
+          hydrateStudentAvatars(preview).catch(error => console.warn('تعذر عرض معاينة الصورة:', error));
+        } else {
+          preview.innerHTML = `<span class="avatar avatar-editor-avatar student-avatar-preset"><img class="student-avatar-image preset-image" src="${escapeHTML(avatarPresetPath(pendingStudentAvatar.presetId))}" alt="" /></span><small>اختر صورة أو التقطها</small>`;
+        }
+      } else if (mode === 'initial') {
+        preview.innerHTML = `<span class="avatar avatar-editor-avatar student-avatar-initial"><span>${escapeHTML(studentInitial({ name }))}</span></span><small>الحرف الأول</small>`;
+      } else {
+        const selected = AVATAR_PRESETS.find(item => item.id === pendingStudentAvatar.presetId);
+        preview.innerHTML = `<span class="avatar avatar-editor-avatar student-avatar-preset"><img class="student-avatar-image preset-image" src="${escapeHTML(avatarPresetPath(pendingStudentAvatar.presetId))}" alt="" /></span><small>${escapeHTML(selected?.label || 'صورة رمزية')}</small>`;
+      }
+    }
+
+    const initialPreview = $('#studentAvatarInitialPreview');
+    if (initialPreview) initialPreview.textContent = studentInitial({ name });
+  }
+
+  async function handleStudentAvatarSelection(event) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !pendingStudentAvatar) return;
+    if (!file.type.startsWith('image/')) {
+      showToast('اختر ملف صورة صالحًا.', 'warning');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      showToast('حجم الصورة كبير جدًا؛ اختر صورة أصغر من ١٥ ميجابايت.', 'warning');
+      return;
+    }
+    try {
+      const blob = await prepareAvatarPhoto(file);
+      if (studentAvatarPreviewUrl) URL.revokeObjectURL(studentAvatarPreviewUrl);
+      studentAvatarPreviewUrl = URL.createObjectURL(blob);
+      pendingStudentAvatar.mode = 'photo';
+      pendingStudentAvatar.newBlob = blob;
+      pendingStudentAvatar.newName = file.name || `صورة-طالب-${Date.now()}.jpg`;
+      pendingStudentAvatar.newType = blob.type || 'image/jpeg';
+      renderStudentAvatarEditor();
+    } catch (error) {
+      console.error(error);
+      showToast('تعذر تجهيز صورة الطالب.', 'error');
+    }
+  }
+
+  async function prepareAvatarPhoto(file) {
+    const bitmap = await createImageBitmap(file);
+    const size = Math.min(bitmap.width, bitmap.height);
+    const sourceX = Math.max(0, Math.round((bitmap.width - size) / 2));
+    const sourceY = Math.max(0, Math.round((bitmap.height - size) / 2));
+    const targetSize = 640;
+    const canvas = document.createElement('canvas');
+    canvas.width = targetSize;
+    canvas.height = targetSize;
+    const context = canvas.getContext('2d');
+    context.fillStyle = '#f2f5f8';
+    context.fillRect(0, 0, targetSize, targetSize);
+    context.drawImage(bitmap, sourceX, sourceY, size, size, 0, 0, targetSize, targetSize);
+    bitmap.close?.();
+    return await new Promise((resolve, reject) => {
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('فشل تجهيز الصورة')), 'image/jpeg', 0.84);
+    });
+  }
+
+  function removePendingStudentAvatarPhoto() {
+    if (!pendingStudentAvatar) return;
+    if (studentAvatarPreviewUrl) {
+      URL.revokeObjectURL(studentAvatarPreviewUrl);
+      studentAvatarPreviewUrl = '';
+    }
+    pendingStudentAvatar.newBlob = null;
+    pendingStudentAvatar.newName = '';
+    pendingStudentAvatar.newType = '';
+    pendingStudentAvatar.photoMediaId = '';
+    pendingStudentAvatar.mode = 'preset';
+    renderStudentAvatarEditor();
+    showToast('أزيلت الصورة من المعاينة؛ احفظ التعديل لتأكيد الحذف.', 'success');
+  }
+
+  async function persistPendingStudentAvatar(existingStudent = null) {
+    const fallback = normalizeStudentAvatar(existingStudent?.avatar, existingStudent || {}).presetId || AVATAR_PRESETS[0].id;
+    const draft = pendingStudentAvatar || { mode: 'preset', presetId: fallback, originalMediaId: '', photoMediaId: '' };
+    const presetId = AVATAR_PRESETS.some(item => item.id === draft.presetId) ? draft.presetId : fallback;
+    const oldMediaId = normalizeStudentAvatar(existingStudent?.avatar, existingStudent || {}).mediaId || draft.originalMediaId || '';
+
+    if (draft.mode === 'photo') {
+      let mediaId = draft.photoMediaId || oldMediaId;
+      let mediaName = draft.mediaName || existingStudent?.avatar?.mediaName || '';
+      let mediaType = draft.mediaType || existingStudent?.avatar?.mediaType || '';
+      if (draft.newBlob) {
+        const media = await putMedia(draft.newBlob, draft.newName || `صورة-طالب-${Date.now()}.jpg`, draft.newType || draft.newBlob.type || 'image/jpeg');
+        mediaId = media.id;
+        mediaName = media.name;
+        mediaType = media.type;
+      }
+      if (!mediaId) throw new Error('اختر صورة حقيقية أولًا.');
+      if (oldMediaId && oldMediaId !== mediaId) {
+        await deleteMedia(oldMediaId).catch(error => console.warn('تعذر حذف الصورة السابقة:', error));
+        revokeAvatarObjectUrl(oldMediaId);
+      }
+      return { mode: 'photo', presetId, mediaId, mediaName, mediaType, updatedAt: new Date().toISOString() };
+    }
+
+    if (oldMediaId) {
+      await deleteMedia(oldMediaId).catch(error => console.warn('تعذر حذف الصورة السابقة:', error));
+      revokeAvatarObjectUrl(oldMediaId);
+    }
+    return { mode: draft.mode === 'initial' ? 'initial' : 'preset', presetId, mediaId: '', mediaName: '', mediaType: '', updatedAt: new Date().toISOString() };
+  }
+
   function openStudentDialog(studentId = '') {
     const student = state.students.find(item => item.id === studentId);
     $('#studentEditId').value = student?.id || '';
@@ -1169,12 +1505,14 @@
     renderStudentNoteChoices(noteData.noteCategory, noteData.noteChoice);
     $('#studentNoteOther').value = noteData.noteOther;
     toggleStudentNoteOther();
+    initializeStudentAvatarDraft(student || null);
+    renderStudentAvatarEditor();
     $('#studentDialogTitle').textContent = student ? 'تعديل بيانات الطالب' : 'إضافة طالب';
     openDialog('studentDialog');
     setTimeout(() => $('#studentName')?.focus(), 50);
   }
 
-  function saveStudentFromDialog() {
+  async function saveStudentFromDialog() {
     const id = $('#studentEditId').value;
     const name = $('#studentName').value.trim();
     if (!name) {
@@ -1200,33 +1538,52 @@
       $('#studentNoteOther')?.focus();
       return;
     }
-    const note = getStudentNoteText(noteData);
-
-    if (id) {
-      const student = state.students.find(item => item.id === id);
-      if (student) Object.assign(student, {
-        name,
-        number: $('#studentNumber').value.trim(),
-        ...noteData,
-        note,
-        updatedAt: new Date().toISOString()
-      });
-    } else {
-      state.students.push({
-        id: uid('student'),
-        name,
-        number: $('#studentNumber').value.trim(),
-        ...noteData,
-        note,
-        createdAt: new Date().toISOString()
-      });
+    if (pendingStudentAvatar?.mode === 'photo' && !pendingStudentAvatar.newBlob && !pendingStudentAvatar.photoMediaId && !pendingStudentAvatar.originalMediaId) {
+      showToast('اختر صورة حقيقية أو استخدم صورة رمزية.', 'warning');
+      return;
     }
 
-    saveState();
-    $('#studentDialog').close();
-    renderAll();
-    if (id && $('#studentCardDialog')?.open) openStudentCard(id);
-    showToast(id ? 'تم تحديث بيانات الطالب.' : 'تمت إضافة الطالب.', 'success');
+    const saveButton = $('#saveStudentButton');
+    saveButton.disabled = true;
+    saveButton.textContent = 'جارٍ الحفظ…';
+    try {
+      const existingStudent = id ? state.students.find(item => item.id === id) : null;
+      const avatar = await persistPendingStudentAvatar(existingStudent);
+      const note = getStudentNoteText(noteData);
+
+      if (existingStudent) {
+        Object.assign(existingStudent, {
+          name,
+          number: $('#studentNumber').value.trim(),
+          ...noteData,
+          note,
+          avatar,
+          updatedAt: new Date().toISOString()
+        });
+      } else {
+        state.students.push({
+          id: uid('student'),
+          name,
+          number: $('#studentNumber').value.trim(),
+          ...noteData,
+          note,
+          avatar,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      saveState();
+      $('#studentDialog').close();
+      renderAll();
+      if (id && $('#studentCardDialog')?.open) await openStudentCard(id);
+      showToast(id ? 'تم تحديث بيانات الطالب وصورته التعريفية.' : 'تمت إضافة الطالب بصورته التعريفية.', 'success');
+    } catch (error) {
+      console.error(error);
+      showToast(error?.message || 'تعذر حفظ بيانات الطالب.', 'error');
+    } finally {
+      saveButton.disabled = false;
+      saveButton.textContent = 'حفظ';
+    }
   }
 
   function saveBulkStudents() {
@@ -1241,7 +1598,8 @@
     lines.forEach((line, index) => {
       const normalized = normalizeName(line);
       if (!normalized || existingNames.has(normalized)) return;
-      state.students.push({ id: uid('student'), name: line, number: String(state.students.length + 1), noteCategory: '', noteChoice: '', noteOther: '', note: '', createdAt: new Date().toISOString() });
+      const presetId = AVATAR_PRESETS[state.students.length % AVATAR_PRESETS.length].id;
+      state.students.push({ id: uid('student'), name: line, number: String(state.students.length + 1), noteCategory: '', noteChoice: '', noteOther: '', note: '', avatar: { mode: 'preset', presetId, mediaId: '', mediaName: '', mediaType: '', updatedAt: new Date().toISOString() }, createdAt: new Date().toISOString() });
       existingNames.add(normalized);
       added += 1;
     });
@@ -1258,6 +1616,11 @@
     if (!student) return;
     if (!confirm(`سيتم حذف «${student.name}» وجميع سجلاته ومرفقاته. هل أنت متأكد؟`)) return;
 
+    const avatarMediaId = normalizeStudentAvatar(student.avatar, student).mediaId;
+    if (avatarMediaId) {
+      await deleteMedia(avatarMediaId).catch(error => console.warn('تعذر حذف صورة الطالب:', error));
+      revokeAvatarObjectUrl(avatarMediaId);
+    }
     const entries = state.entries.filter(entry => entry.studentId === studentId);
     for (const entry of entries) {
       for (const media of entry.media || []) await deleteMedia(media.id);
@@ -1306,7 +1669,7 @@
     $('#studentCardContent').innerHTML = `
       <div class="student-profile-header">
         <div class="student-profile-identity">
-          <div class="avatar">${escapeHTML(student.name.trim().charAt(0) || 'ط')}</div>
+          ${studentAvatarHTML(student, { context: 'app', className: 'student-profile-avatar' })}
           <div><h3>${escapeHTML(student.name)}</h3><p>${escapeHTML([state.settings.grade, state.settings.className].filter(Boolean).join(' — ') || 'بطاقة تعلم فردية')}</p></div>
         </div>
         <div class="student-profile-actions">
@@ -1345,6 +1708,7 @@
       </section>`;
 
     if (!$('#studentCardDialog').open) $('#studentCardDialog').showModal();
+    await hydrateStudentAvatars($('#studentCardContent'));
     await hydrateMedia($('#studentCardContent'));
   }
 
@@ -2043,6 +2407,7 @@
     renderGroupCriteriaStrip();
     if (currentMotivationMode === 'groups') renderMotivationGroups();
     else renderMotivationStudents();
+    hydrateStudentAvatars($('#view-motivation') || document).catch(error => console.warn('تعذر تحديث صور لوحة التحفيز:', error));
   }
 
   function renderMotivationStats(pending = []) {
@@ -2078,7 +2443,7 @@
       const type = REWARD_TYPES[suggestion.rewardType] || REWARD_TYPES.star;
       const rewardLabel = suggestion.rewardType === 'badge' && badge ? `${badge.icon} ${badge.label}` : `${type.icon} ${type.label}`;
       return `<article class="motivation-suggestion-card">
-        <div class="suggestion-icon">${suggestion.rewardType === 'badge' ? (badge?.icon || '🏅') : type.icon}</div>
+        <div class="suggestion-avatar-wrap">${student ? studentAvatarHTML(student, { context: 'app', className: 'suggestion-avatar' }) : `<div class="suggestion-icon">${suggestion.rewardType === 'badge' ? (badge?.icon || '🏅') : type.icon}</div>`}<span class="suggestion-reward-symbol">${suggestion.rewardType === 'badge' ? (badge?.icon || '🏅') : type.icon}</span></div>
         <div class="suggestion-copy">
           <strong>${escapeHTML(student?.name || 'طالب محذوف')} — ${escapeHTML(rewardLabel)}</strong>
           <span>${escapeHTML(suggestion.reasonText || 'أظهر تقدمًا يستحق التحفيز.')}${skill ? ` • ${escapeHTML(skill.name)}` : ''}</span>
@@ -2130,7 +2495,7 @@
       return `<article class="motivation-student-card">
         <div class="motivation-card-top">
           <div class="student-card-header">
-            <div class="avatar motivation-avatar">${escapeHTML(item.student.name.trim().charAt(0) || 'ط')}</div>
+            ${studentAvatarHTML(item.student, { context: 'app', className: 'motivation-avatar' })}
             <div><strong>${escapeHTML(item.student.name)}</strong><small>${item.student.number ? `الرقم ${escapeHTML(toArabicDigits(item.student.number))}` : 'رصيد تحفيز فردي'}</small></div>
           </div>
           <button class="table-action" data-action="open-reward-history" data-target-type="student" data-target-id="${escapeHTML(item.student.id)}" type="button">السجل</button>
@@ -2167,7 +2532,8 @@
     const groups = state.motivation.groups.map(group => ({ group, ...summarizeGroupRewards(group.id) }))
       .sort((a, b) => b.total - a.total || a.group.name.localeCompare(b.group.name, 'ar'));
     container.innerHTML = groups.map(item => {
-      const members = item.group.memberIds.map(id => state.students.find(student => student.id === id)?.name).filter(Boolean);
+      const memberStudents = item.group.memberIds.map(id => state.students.find(student => student.id === id)).filter(Boolean);
+      const members = memberStudents.map(student => student.name);
       return `<article class="motivation-group-card">
         <div class="group-card-header">
           <div><span class="group-icon">👥</span><div><strong>${escapeHTML(item.group.name)}</strong><small>${toArabicDigits(members.length)} أعضاء</small></div></div>
@@ -2177,7 +2543,7 @@
             <button class="table-action danger" data-action="delete-motivation-group" data-group-id="${escapeHTML(item.group.id)}" type="button">حذف</button>
           </div>
         </div>
-        <div class="group-members">${members.length ? members.map(name => `<span>${escapeHTML(name)}</span>`).join('') : '<span>دون أعضاء</span>'}</div>
+        <div class="group-members">${memberStudents.length ? memberStudents.map(student => `<span class="group-member-chip">${studentAvatarHTML(student, { context: 'app', className: 'group-chip-avatar' })}<span>${escapeHTML(student.name)}</span></span>`).join('') : '<span>دون أعضاء</span>'}</div>
         <div class="group-total"><span>المجموع</span><strong>${toArabicDigits(item.total)}</strong></div>
         <div class="group-criteria-grid">
           ${GROUP_CRITERIA.map(criterion => `<div class="group-criterion-card">
@@ -2382,10 +2748,11 @@
     $('#motivationGroupDialogTitle').textContent = group ? 'تعديل المجموعة' : 'إنشاء مجموعة';
     $('#motivationGroupMembers').innerHTML = state.students.map(student => `<label class="group-member-choice">
       <input type="checkbox" value="${escapeHTML(student.id)}" ${(group?.memberIds || []).includes(student.id) ? 'checked' : ''} />
-      <span class="avatar small-avatar">${escapeHTML(student.name.trim().charAt(0) || 'ط')}</span>
+      ${studentAvatarHTML(student, { context: 'app', className: 'small-avatar' })}
       <span>${escapeHTML(student.name)}</span>
     </label>`).join('');
     openDialog('motivationGroupDialog');
+    hydrateStudentAvatars($('#motivationGroupMembers')).catch(error => console.warn('تعذر تحديث صور أعضاء المجموعة:', error));
     setTimeout(() => $('#motivationGroupName')?.focus(), 50);
   }
 
@@ -2584,6 +2951,10 @@
     $('#settingSemester').value = state.settings.semester || '';
     $('#settingSubject').value = state.settings.subject || 'الرياضيات';
     $('#settingReportTitle').value = state.settings.reportTitle || DEFAULT_STATE.settings.reportTitle;
+    $('#settingShowAvatarsInApp').checked = state.settings.showAvatarsInApp !== false;
+    $('#settingShowAvatarsInDashboard').checked = state.settings.showAvatarsInDashboard !== false;
+    $('#settingShowAvatarsInPrint').checked = Boolean(state.settings.showAvatarsInPrint);
+    $('#settingIncludePhotosInBackup').checked = Boolean(state.settings.includePhotosInBackup);
   }
 
   function saveSettings() {
@@ -2594,11 +2965,15 @@
       className: $('#settingClass').value.trim(),
       semester: $('#settingSemester').value.trim(),
       subject: $('#settingSubject').value.trim() || 'الرياضيات',
-      reportTitle: $('#settingReportTitle').value.trim() || DEFAULT_STATE.settings.reportTitle
+      reportTitle: $('#settingReportTitle').value.trim() || DEFAULT_STATE.settings.reportTitle,
+      showAvatarsInApp: Boolean($('#settingShowAvatarsInApp')?.checked),
+      showAvatarsInDashboard: Boolean($('#settingShowAvatarsInDashboard')?.checked),
+      showAvatarsInPrint: Boolean($('#settingShowAvatarsInPrint')?.checked),
+      includePhotosInBackup: Boolean($('#settingIncludePhotosInBackup')?.checked)
     };
     saveState();
-    renderContext();
-    showToast('تم حفظ إعدادات السجل.', 'success');
+    renderAll();
+    showToast('تم حفظ إعدادات السجل والخصوصية.', 'success');
   }
 
   async function exportBackup() {
@@ -2608,7 +2983,31 @@
       button.textContent = 'جارٍ تجهيز النسخة…';
     }
     try {
-      const mediaIds = [...new Set(state.entries.flatMap(entry => (entry.media || []).map(media => media.id)))];
+      const includeAvatarPhotos = Boolean(state.settings.includePhotosInBackup);
+      const backupState = structuredCloneSafe(state);
+      const mediaIds = new Set(state.entries.flatMap(entry => (entry.media || []).map(media => media.id)));
+
+      if (includeAvatarPhotos) {
+        state.students.forEach(student => {
+          const avatar = normalizeStudentAvatar(student.avatar, student);
+          if (avatar.mode === 'photo' && avatar.mediaId) mediaIds.add(avatar.mediaId);
+        });
+      } else {
+        backupState.students.forEach((student, index) => {
+          const avatar = normalizeStudentAvatar(student.avatar, student, index);
+          if (avatar.mode === 'photo') {
+            student.avatar = {
+              mode: 'preset',
+              presetId: avatar.presetId,
+              mediaId: '',
+              mediaName: '',
+              mediaType: '',
+              updatedAt: avatar.updatedAt || new Date().toISOString()
+            };
+          }
+        });
+      }
+
       const mediaData = [];
       for (const id of mediaIds) {
         const record = await getMedia(id);
@@ -2623,13 +3022,14 @@
       }
       const backup = {
         app: 'بوصلة الرياضيات',
-        backupVersion: 2,
+        backupVersion: 3,
         exportedAt: new Date().toISOString(),
-        state,
+        privacy: { avatarPhotosIncluded: includeAvatarPhotos },
+        state: backupState,
         mediaData
       };
       downloadBlob(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json;charset=utf-8' }), `نسخة-احتياطية-بوصلة-الرياضيات-${todayISO()}.json`);
-      showToast('تم إنشاء النسخة الاحتياطية الكاملة.', 'success');
+      showToast(includeAvatarPhotos ? 'تم إنشاء النسخة الاحتياطية مع الصور الحقيقية.' : 'تم إنشاء النسخة الاحتياطية دون الصور الحقيقية وفق إعدادات الخصوصية.', 'success');
     } catch (error) {
       console.error(error);
       showToast('تعذر إنشاء النسخة الاحتياطية.', 'error');
@@ -2653,6 +3053,7 @@
         throw new Error('صيغة غير صحيحة');
       }
 
+      revokeAllAvatarObjectUrls();
       await clearMediaDatabase();
       for (const media of backup.mediaData || []) {
         const blob = dataURLToBlob(media.dataUrl);
@@ -2740,6 +3141,7 @@
   async function resetApp() {
     if (!confirm('سيتم حذف جميع الطلاب والرصد والصور والتسجيلات من هذا الجهاز. لا يمكن التراجع. هل أنت متأكد؟')) return;
     if (!confirm('تأكيد أخير: هل تريد مسح السجل كاملًا؟')) return;
+    revokeAllAvatarObjectUrls();
     await clearMediaDatabase();
     state = structuredCloneSafe(DEFAULT_STATE);
     saveState();
@@ -2766,10 +3168,11 @@
     return `<footer class="print-footer"><div class="print-credit"><img src="./assets/interactive-learning-forum-logo.png" alt="" /><span>أ/ فاطمة هزازي | ملتقى التعليم التفاعلي | ملتقى معلمي ومعلمات الرياضيات</span></div><span>تاريخ الطباعة: ${escapeHTML(formatDate(todayISO()))}</span></footer>`;
   }
 
-  function launchPrint(html) {
+  async function launchPrint(html) {
     const printArea = $('#printArea');
     printArea.innerHTML = `<div class="print-document">${html}</div>`;
     printArea.setAttribute('aria-hidden', 'false');
+    await hydrateStudentAvatars(printArea);
     const images = Array.from(printArea.querySelectorAll('img'));
     const imageReady = images.map(image => image.complete ? Promise.resolve() : new Promise(resolve => {
       image.addEventListener('load', resolve, { once: true });
@@ -2787,7 +3190,7 @@
     const mastery = rated.length ? Math.round(rated.filter(cell => Number(cell.entry.postLevel) >= 3).length / rated.length * 100) : 0;
 
     const header = skills.map(skill => `<th>${escapeHTML(skill.name)}</th>`).join('');
-    const rows = matrix.length ? matrix.map(row => `<tr><td class="student-print-name">${escapeHTML(row.student.name)}</td>${row.cells.map(cell => {
+    const rows = matrix.length ? matrix.map(row => `<tr><td class="student-print-name">${printStudentIdentity(row.student)}</td>${row.cells.map(cell => {
       const level = cell.entry ? Number(cell.entry.postLevel) : 0;
       return `<td class="print-level-cell print-level-${level}">${level ? `${LEVELS[level].emoji} ${LEVELS[level].name}` : '—'}</td>`;
     }).join('')}</tr>`).join('') : `<tr><td colspan="${skills.length + 1}">لا توجد بيانات</td></tr>`;
@@ -2815,7 +3218,7 @@
       const errors = entry?.errorCodes?.map(id => ERROR_CODES.find(item => item.id === id)?.code).filter(Boolean).join('، ') || '';
       return `<tr>
         <td>${toArabicDigits(index + 1)}</td>
-        <td class="student-print-name">${escapeHTML(student.name)}</td>
+        <td class="student-print-name">${printStudentIdentity(student)}</td>
         <td>${entry?.preLevel ? LEVELS[entry.preLevel].name : ''}</td>
         <td class="print-level-cell print-level-${entry?.postLevel || 0}">${entry?.absent ? 'غائب' : entry?.postLevel ? LEVELS[entry.postLevel].name : ''}</td>
         <td>${escapeHTML(mode)}</td>
@@ -2849,7 +3252,7 @@
         const error = ERROR_CODES.find(e => e.id === id);
         return error ? `${error.code} — ${error.label}` : id;
       }).join('، ');
-      return `<tr><td>${toArabicDigits(index + 1)}</td><td class="student-print-name">${escapeHTML(item.student.name)}</td><td>${escapeHTML(item.skill.name)}</td><td class="print-level-cell print-level-${item.entry.postLevel}">${LEVELS[item.entry.postLevel].name}</td><td>${escapeHTML(errors || 'غير محدد')}</td><td>${escapeHTML(item.entry.action || generateSuggestion(item.entry))}</td><td>${escapeHTML(formatDate(item.entry.date))}</td></tr>`;
+      return `<tr><td>${toArabicDigits(index + 1)}</td><td class="student-print-name">${printStudentIdentity(item.student)}</td><td>${escapeHTML(item.skill.name)}</td><td class="print-level-cell print-level-${item.entry.postLevel}">${LEVELS[item.entry.postLevel].name}</td><td>${escapeHTML(errors || 'غير محدد')}</td><td>${escapeHTML(item.entry.action || generateSuggestion(item.entry))}</td><td>${escapeHTML(formatDate(item.entry.date))}</td></tr>`;
     }).join('') : '<tr><td colspan="7">لا توجد حالات دعم حالية بحسب أحدث رصد.</td></tr>';
 
     launchPrint(`
@@ -2869,7 +3272,7 @@
     });
     records.sort((a, b) => a.student.name.localeCompare(b.student.name, 'ar'));
 
-    const rows = records.length ? records.map((item, index) => `<tr><td>${toArabicDigits(index + 1)}</td><td class="student-print-name">${escapeHTML(item.student.name)}</td><td>${escapeHTML(item.skill.name)}</td><td>${escapeHTML(item.entry.action || generateSuggestion(item.entry))}</td><td>${escapeHTML(formatDate(item.entry.date))}</td></tr>`).join('') : '<tr><td colspan="5">لا توجد مهارات في مستوى الامتداد حتى الآن.</td></tr>';
+    const rows = records.length ? records.map((item, index) => `<tr><td>${toArabicDigits(index + 1)}</td><td class="student-print-name">${printStudentIdentity(item.student)}</td><td>${escapeHTML(item.skill.name)}</td><td>${escapeHTML(item.entry.action || generateSuggestion(item.entry))}</td><td>${escapeHTML(formatDate(item.entry.date))}</td></tr>`).join('') : '<tr><td colspan="5">لا توجد مهارات في مستوى الامتداد حتى الآن.</td></tr>';
 
     launchPrint(`
       ${printHeader('تقرير الإثراء والامتداد', 'مهام مقترحة للطلاب الجاهزين للتحدي')}
@@ -2889,7 +3292,7 @@
       const skillName = latest ? rewardSkillName(latest) : '';
       return `<tr>
         <td>${toArabicDigits(index + 1)}</td>
-        <td class="student-print-name">${escapeHTML(item.student.name)}</td>
+        <td class="student-print-name">${printStudentIdentity(item.student)}</td>
         <td>${toArabicDigits(item.stars)}</td>
         <td>${toArabicDigits(item.badges)}</td>
         <td>${latest ? escapeHTML(rewardTitle(latest)) : '—'}</td>
@@ -2965,6 +3368,7 @@
 
     launchPrint(`
       ${printHeader(`بطاقة الطالب: ${student.name}`, [state.settings.grade, state.settings.className].filter(Boolean).join(' — '))}
+      ${state.settings.showAvatarsInPrint ? `<div class="print-student-hero">${studentAvatarHTML(student, { context: 'print', className: 'print-student-hero-avatar' })}<div><strong>${escapeHTML(student.name)}</strong><span>${escapeHTML([state.settings.grade, state.settings.className].filter(Boolean).join(' — ') || 'بطاقة تعلم فردية')}</span></div></div>` : ''}
       <div class="print-summary">
         <div class="print-summary-item"><strong>${toArabicDigits(summary?.ratedCount || 0)}</strong><span>مهارة مرصودة</span></div>
         <div class="print-summary-item"><strong>${toArabicDigits(summary?.average ? summary.average.toFixed(1) : '—')}</strong><span>متوسط التقدم</span></div>

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f766e" />
-  <meta name="description" content="سجل إلكتروني تفاعلي لمتابعة تعلم الرياضيات يوميًا، مع لوحة تحفيز وأوسمة مرتبطة بالمهارات ومراعاة الفروق الفردية." />
+  <meta name="description" content="سجل إلكتروني تفاعلي لمتابعة تعلم الرياضيات يوميًا، مع صور رمزية آمنة، ولوحة تحفيز وأوسمة مرتبطة بالمهارات ومراعاة الفروق الفردية." />
   <title>بوصلة الرياضيات | سجل المتابعة اليومية</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
@@ -494,6 +494,36 @@
                 <span>عنوان السجل في التقارير</span>
                 <input id="settingReportTitle" type="text" value="سجل المتابعة اليومية لمادة الرياضيات" />
               </label>
+
+              <section class="full-width avatar-privacy-settings" aria-labelledby="avatarPrivacyTitle">
+                <div class="settings-section-heading">
+                  <div>
+                    <span class="eyebrow">خصوصية الصور</span>
+                    <h3 id="avatarPrivacyTitle">إعدادات الصورة التعريفية</h3>
+                    <p>الصور الرمزية هي الوضع الافتراضي، ويمكنك التحكم في مواضع عرض الصور الحقيقية.</p>
+                  </div>
+                  <span class="privacy-mini-badge">🔒 تخزين محلي</span>
+                </div>
+                <div class="privacy-toggle-grid">
+                  <label class="privacy-toggle-card">
+                    <input id="settingShowAvatarsInApp" type="checkbox" />
+                    <span><strong>إظهار الصور داخل التطبيق</strong><small>في البطاقات والرصد والتحفيز والمجموعات.</small></span>
+                  </label>
+                  <label class="privacy-toggle-card">
+                    <input id="settingShowAvatarsInDashboard" type="checkbox" />
+                    <span><strong>إظهار الصور في لوحة الفصل</strong><small>يمكن إيقافها عند عرض الشاشة أمام الآخرين.</small></span>
+                  </label>
+                  <label class="privacy-toggle-card">
+                    <input id="settingShowAvatarsInPrint" type="checkbox" />
+                    <span><strong>إظهار الصور في التقارير والطباعة</strong><small>غير مفعّل افتراضيًا حفاظًا على الخصوصية.</small></span>
+                  </label>
+                  <label class="privacy-toggle-card">
+                    <input id="settingIncludePhotosInBackup" type="checkbox" />
+                    <span><strong>تضمين الصور الحقيقية في النسخة الاحتياطية</strong><small>عند إيقافه تُستبدل الصور الحقيقية برموز كرتونية في النسخة.</small></span>
+                  </label>
+                </div>
+              </section>
+
               <div class="full-width form-actions">
                 <button class="button button-primary" type="submit">حفظ الإعدادات</button>
               </div>
@@ -530,7 +560,7 @@
   </div>
 
   <dialog id="studentDialog" class="modal-dialog">
-    <form method="dialog" id="studentForm" class="dialog-card">
+    <form method="dialog" id="studentForm" class="dialog-card dialog-card-wide student-dialog-card">
       <div class="dialog-header">
         <div>
           <span class="eyebrow">بطاقة طالب</span>
@@ -547,6 +577,55 @@
         <span>الرقم أو الترتيب</span>
         <input id="studentNumber" type="text" inputmode="numeric" placeholder="اختياري" />
       </label>
+
+      <section class="student-avatar-editor" aria-labelledby="studentAvatarEditorTitle">
+        <div class="avatar-editor-heading">
+          <div>
+            <span class="eyebrow">هوية بصرية آمنة</span>
+            <h4 id="studentAvatarEditorTitle">الصورة التعريفية للطالب</h4>
+            <p>الصورة الرمزية الكرتونية هي الخيار الافتراضي، ويمكن رفع صورة حقيقية أو استخدام الحرف الأول.</p>
+          </div>
+          <span class="privacy-mini-badge">🔒 محفوظة على الجهاز</span>
+        </div>
+
+        <div class="avatar-editor-main">
+          <div id="studentAvatarEditorPreview" class="avatar-editor-preview" aria-live="polite"></div>
+          <div class="avatar-mode-buttons" role="group" aria-label="طريقة عرض صورة الطالب">
+            <button class="avatar-mode-button" data-action="select-student-avatar-mode" data-avatar-mode="preset" type="button">
+              <span>🧑‍🎨</span><strong>صورة رمزية</strong><small>الخيار الافتراضي</small>
+            </button>
+            <button class="avatar-mode-button" data-action="select-student-avatar-mode" data-avatar-mode="photo" type="button">
+              <span>📷</span><strong>صورة حقيقية</strong><small>اختياري</small>
+            </button>
+            <button class="avatar-mode-button" data-action="select-student-avatar-mode" data-avatar-mode="initial" type="button">
+              <span>أ</span><strong>الحرف الأول</strong><small>دون صورة</small>
+            </button>
+          </div>
+        </div>
+
+        <div id="studentAvatarPresetPanel" class="avatar-editor-panel">
+          <div class="avatar-panel-title"><strong>اختر صورة رمزية</strong><span>يمكن تغييرها في أي وقت.</span></div>
+          <div id="studentAvatarPresetGrid" class="avatar-preset-grid"></div>
+        </div>
+
+        <div id="studentAvatarPhotoPanel" class="avatar-editor-panel" hidden>
+          <div class="avatar-panel-title"><strong>الصورة الحقيقية</strong><span>تُضغط وتُقص تلقائيًا لتناسب البطاقة.</span></div>
+          <div class="avatar-photo-actions">
+            <label class="button button-secondary" for="studentAvatarFileInput">رفع صورة من الجهاز</label>
+            <label class="button button-ghost" for="studentAvatarCameraInput">التقاط صورة بالكاميرا</label>
+            <button class="button button-danger button-small" data-action="remove-student-avatar-photo" type="button">حذف الصورة</button>
+          </div>
+          <input id="studentAvatarFileInput" type="file" accept="image/*" hidden />
+          <input id="studentAvatarCameraInput" type="file" accept="image/*" capture="environment" hidden />
+          <p class="helper-text">لن تظهر الصورة في التقارير أو النسخة الاحتياطية إلا بعد تفعيل ذلك من إعدادات الخصوصية.</p>
+        </div>
+
+        <div id="studentAvatarInitialPanel" class="avatar-editor-panel" hidden>
+          <div class="avatar-panel-title"><strong>الحرف الأول من الاسم</strong><span>يتغير تلقائيًا عند تعديل اسم الطالب.</span></div>
+          <div id="studentAvatarInitialPreview" class="avatar-initial-large">ط</div>
+        </div>
+      </section>
+
       <div class="student-note-builder">
         <div class="form-grid two-columns">
           <label>

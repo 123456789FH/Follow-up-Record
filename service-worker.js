@@ -1,4 +1,4 @@
-const CACHE_NAME = 'math-compass-v3.0.0';
+const CACHE_NAME = 'math-compass-v4.0.0';
 const APP_SHELL = [
   './',
   './index.html',
@@ -6,6 +6,18 @@ const APP_SHELL = [
   './app.js',
   './manifest.webmanifest',
   './assets/interactive-learning-forum-logo.png',
+  './assets/avatars/avatar-01.svg',
+  './assets/avatars/avatar-02.svg',
+  './assets/avatars/avatar-03.svg',
+  './assets/avatars/avatar-04.svg',
+  './assets/avatars/avatar-05.svg',
+  './assets/avatars/avatar-06.svg',
+  './assets/avatars/avatar-07.svg',
+  './assets/avatars/avatar-08.svg',
+  './assets/avatars/avatar-09.svg',
+  './assets/avatars/avatar-10.svg',
+  './assets/avatars/avatar-11.svg',
+  './assets/avatars/avatar-12.svg',
   './icons/icon-192.png',
   './icons/icon-512.png'
 ];
